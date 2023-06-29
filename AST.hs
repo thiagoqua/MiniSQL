@@ -57,12 +57,14 @@ type DatabaseName = String
 type ColumnName = String
 type DataType = String
 type DataLong = Int
+type From = [(TableName,As)]
 type Alias = String
 type Op = Char   -- >,<,=,>=,<=,!=
 
 -- Estructuras de datos
 -- Datos soportados
 data Types = S String | N Integer | B Bool | F Float
+ deriving Show
 
 
 -- Expresiones Booleanas
@@ -85,10 +87,15 @@ data Command = Select SelectBody
              | Delete TableName Cond
  deriving Show
 
---CONDICION
-------------------------- TODO ----------------
-data Cond = Skip
-          | Exp Op Name Types
+-- CONDICION
+data Cond = CTrue
+          | CFalse
+          | CoSkip
+          | Exp Op Name Types       -- WHERE edad > 18 && nombre = "esteban" -> Exp '>' 'edad' (N 18)
+          | CAnd Cond Cond
+          | COr Cond Cond
+          | CNot Cond
+ deriving Show
 
 --CREATE TABLE
 data ColumnCreation = ColumnString ColumnName DataType DataLong
@@ -99,30 +106,27 @@ data ColumnCreation = ColumnString ColumnName DataType DataLong
 -- OPCIONES
 data SelectOpc = Column ColumnOptions
                | Top Integer ColumnOptions
+ deriving Show
 
 data ColumnOptions = Asterisk 
                    | Columns [ColumnName]
+ deriving Show
 
 -- CUERPO
-data SelectBody = Body SelectOpc TableName Cond
+data SelectBody = Body SelectOpc From Cond Clause
  deriving Show
 
-------------------------- TODO ----------------
-data OrderBy = OrderBy_ String By
+-- CLAUSULAS
+data Clause = ClSkip
+            | OrderBy ColumnName Sort
+            | GroupBy ColumnName
  deriving Show
 
-data GroupBy = GroupBy_ String
+data Sort = ASC
+          | DESC
  deriving Show
 
-data By = ASC
-        | DESC
+-- ALIAS
+data As = ASkip
+        | As Alias
  deriving Show
-
-
-data As = As_ ColumnName Alias
- deriving Show
-
--- data From = From_ String
---           | From1_ [String]
---           | From2_ [As]
---  deriving Show
