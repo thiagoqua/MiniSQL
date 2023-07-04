@@ -50,7 +50,7 @@ module AST where
 -}
 
 -- Nuestros tipos
-type HeterList = [Types]
+type HeterList = [PrimalType]
 type Name = String
 type TableName = String
 type DatabaseName = String
@@ -59,47 +59,52 @@ type DataType = String
 type DataLong = Int
 type From = [(TableName,As)]
 type Alias = String
-type Op = Char   -- >,<,=,>=,<=,!=
 
 -- Estructuras de datos
 -- Datos soportados
-data Types = S String | N Integer | B Bool | F Float
+data PrimalType = S String | N Integer | B Bool | F Float
  deriving Show
 
+data Op = Eq 
+        | Bt 
+        | Bte
+        | Lt
+        | Lte
+        | Neq
+ deriving Show
 
 -- Expresiones Booleanas
-data BoolExp = BTrue
-             | BFalse
-             | Eq IntExp IntExp
-             | And BoolExp BoolExp
-             | Or BoolExp BoolExp
-             | Not BoolExp
- deriving (Show,Eq)
+-- POR EL MOMENTO CERRADO
+-- data BoolExp = BTrue
+--              | BFalse
+--              | Eq IntExp IntExp     
+--              | And BoolExp BoolExp
+--              | Or BoolExp BoolExp
+--              | Not BoolExp
+--  deriving (Show,Eq)
 
-data IntExp = Const Integer
- deriving (Show,Eq)
+-- data IntExp = Const Integer
+--  deriving (Show,Eq)
 
 -- COMANDOS
 data Command = Select SelectBody
              | CreateDatabase DatabaseName
              | CreateTable TableName [ColumnCreation]
-             | Insert ColumnName [HeterList]
+             | Insert TableName [HeterList]
              | Delete TableName Cond
  deriving Show
 
 -- CONDICION
-data Cond = CTrue
-          | CFalse
-          | CoSkip
-          | Exp Op Name Types       -- WHERE edad > 18 && nombre = "esteban" -> Exp '>' 'edad' (N 18)
+data Cond = CoSkip
+          | Exp Op ColumnName PrimalType       -- WHERE edad > 18 && nombre = "esteban" -> Exp Bt 'edad' (N 18)
           | CAnd Cond Cond
           | COr Cond Cond
           | CNot Cond
  deriving Show
-
+ 
 --CREATE TABLE
 data ColumnCreation = ColumnString ColumnName DataType DataLong
-                    | ColumnOthers ColumnName DataType
+ --si el DataType es string o varchar, leemos el DataLong. sino, no.
  deriving Show
 
 -- SELECT
