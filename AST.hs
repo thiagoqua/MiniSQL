@@ -1,68 +1,20 @@
 module AST where
-
--- CONSULTAS SQL
-{-
-    SELECT * 
-        FROM Table1
-    SELECT "column_name" 
-        FROM "table_name";
-    SELECT "column_name1", "column_name2" 
-        FROM "table_name";
-    SELECT * 
-        FROM “table_name” 
-        WHERE “column_name” = “nombre”
-    SELECT * 
-        FROM “table_name” 
-        WHERE “column_name” = “nombre” AND 
-              “column_name1” = “nombre” 
-    SELECT * 
-        FROM “table_name” 
-        WHERE “column_name” = “nombre” OR 
-              “column_name1” = “nombre”
-    SELECT * 
-        FROM “table_name” 
-        WHERE NOT “column_name” = “nombre”
-    SELECT pv.ProductID, v.BusinessEntityID, v.Name 
-        FROM Purchasing.ProductVendor AS pv, 
-             Purchasing.Vendor AS v 
-        WHERE pv.BusinessEntityID = v.BusinessEntityID
-    SELECT TOP “number” * 
-        FROM “table_name”
-    SELECT * 
-        FROM “table_name” 
-        ORDER BY “column_name” BY ASC
-    SELECT * 
-        FROM “table_name” 
-        ORDER BY “column_name” BY DESC
-    SELECT * 
-        FROM “table_name” 
-        GROUP BY “nombre”
-    
-    CREATE DATABASE "db_name”;
-    CREATE TABLE table_name ("column_name" dataType(largo));
-    
-    INSERT INTO “table_name” 
-        VALUES (“data1", "data2", "data3”);
-    
-    DELETE FROM "table_name";
-    DELETE FROM "table_name"
-        WHERE condition;
--}
+import Data.Text.Internal.Fusion (Step(Skip))
 
 -- Nuestros tipos
 type HeterList = [PrimalType]
 type Name = String
-type TableName = String
+type TableName = (String,As)
 type DatabaseName = String
-type ColumnName = String
+type ColumnName = (String,As)
 type DataType = String
-type DataLong = Int
-type From = [(TableName,As)]
+type DataLong = Integer
+type From = [TableName]
 type Alias = String
 
 -- Estructuras de datos
 -- Datos soportados
-data PrimalType = S String | N Integer | B Bool | F Float
+data PrimalType = S String | I Integer | B Bool
  deriving Show
 
 data Op = Eq 
@@ -73,58 +25,42 @@ data Op = Eq
         | Neq
  deriving Show
 
--- Expresiones Booleanas
--- POR EL MOMENTO CERRADO
--- data BoolExp = BTrue
---              | BFalse
---              | Eq IntExp IntExp     
---              | And BoolExp BoolExp
---              | Or BoolExp BoolExp
---              | Not BoolExp
---  deriving (Show,Eq)
-
--- data IntExp = Const Integer
---  deriving (Show,Eq)
-
 -- COMANDOS
-data Command = Select SelectBody
+data Command = Seq Command Command              -- (2) el problema puede ser que no encuentra el segundo comando
+             | Select SelectQuery
              | CreateDatabase DatabaseName
-             | CreateTable TableName [ColumnCreation]
-             | Insert TableName [HeterList]
-             | Delete TableName Cond
+             | CreateTable Name [ColumnCreation]
+             | Insert Name [HeterList]
+             | Delete Name Cond
+             | Skip                     -- (1) lo ponemos para que corte la ejecución, porque sino no reconoce el eof
  deriving Show
 
--- CONDICION
+-- CONDICION (WHERE)
 data Cond = CoSkip
-          | Exp Op ColumnName PrimalType       -- WHERE edad > 18 && nombre = "esteban" -> Exp Bt 'edad' (N 18)
+          | Exp Op Name PrimalType       -- WHERE edad > 18 && nombre = "esteban" -> Exp Bt 'edad' (N 18)
           | CAnd Cond Cond
           | COr Cond Cond
           | CNot Cond
  deriving Show
  
 --CREATE TABLE
-data ColumnCreation = ColumnString ColumnName DataType DataLong
- --si el DataType es string o varchar, leemos el DataLong. sino, no.
+data ColumnCreation = Column Name DataType DataLong
  deriving Show
 
 -- SELECT
--- OPCIONES
-data SelectOpc = Column ColumnOptions
-               | Top Integer ColumnOptions
+
+-- Las columnas seleccionadas a partir de un Select
+data Columns = Asterisk 
+            | Columns [ColumnName]
  deriving Show
 
-data ColumnOptions = Asterisk 
-                   | Columns [ColumnName]
- deriving Show
-
--- CUERPO
-data SelectBody = Body SelectOpc From Cond Clause
+-- Consulta completa: Select, From, Where y cláusulas
+data SelectQuery = Query Columns From Cond Clause
  deriving Show
 
 -- CLAUSULAS
 data Clause = ClSkip
-            | OrderBy ColumnName Sort
-            | GroupBy ColumnName
+            | OrderBy Name Sort
  deriving Show
 
 data Sort = ASC

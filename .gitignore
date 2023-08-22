@@ -1,2 +1,9 @@
 *.o
 *.hi
+Main
+Main.exe
+*.minsql
+bin/
+cheatGHC.sh
+*.ini
+tests/
