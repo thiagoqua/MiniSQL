@@ -21,16 +21,17 @@ sql = makeTokenParser (emptyDef   { commentLine = "--"
                                   , identStart = letter         -- sirve para empezar los alias de tablas y columnas
                                   , identLetter = letter        -- sirve para reconocer el resto de caracteres de los alias de tablas y columnas
                                   , reservedOpNames = [">","<",">=","<=","=","!=","*","-",",",";"]
-                                  , reservedNames = ["from","where","as","order",
-                                                 "by","asc","desc","into","values",
+                                  , reservedNames = ["from","where","as","order by",
+                                                 "asc","desc","into","values",
                                                  "and","or","not",
                                                  "select","create","database","table","insert","delete",
                                                  "String","Integer","Bool"]
                                   }
                       )
 
+
 --CREATE TABLE
---nombre_columna1 - tipo, nombre_columna2 - tipo
+
 datatypes = try (do reserved sql "string"
                     return "string"     -- acá devolvemos el nombre del tipo de dato, no el valor
                                         -- despues en el insert hay que definir un valor para el tipo (ej. I 3)
@@ -67,9 +68,8 @@ createComands = (do reserved sql "table"
                         )
 
 
-
 --INSERT
-            -- Consulta de prueba: INSERT INTO persona VALUES ("esteban","25"),("thiago","24")
+
 valueParser = try (do reserved sql "true"
                       return (B True)
                   )
@@ -92,7 +92,35 @@ colInsert = sepBy parenValuesParser (spaces >> char ',' >> spaces) --para borrar
   -- y llama a una funcion para analizar lo que está entre parentesis
 
 
+--SELECT
+columns = try (do reservedOp sql "*"
+                  return Asterisk
+              )
+          <|> (do columnSelect <- colSelect
+                  return (Columns columnSelect))
 
+aliasName = do col <- identifier sql
+               try (do reserved sql "as"
+                       alias <- identifier sql
+                       return (col, As alias)
+                   )
+                   <|> return (col, ASkip)
+
+colSelect = sepBy aliasName (spaces >> char ',' >> spaces)
+
+clause = try (do reserved sql "order by"
+                 name <- identifier sql
+                 ord <- order
+                 return (OrderBy name ord)
+             )
+             <|> return ClSkip
+
+order = try (do reserved sql "asc"
+                return ASC
+            )
+        <|> (do reserved sql "asc"
+                return DESC
+            )
 
 -- COMM PRINCIPAL
 -- funcion que se encarga de combinar expresiones separadas por un ;
@@ -101,10 +129,17 @@ commSep = chainl1 comm2 (try (do reservedOp sql ";"
                                  return Seq))
 
 
-
 --COMM DE LOS COMANDOS
-comm2 = try (do reserved sql "create"
-                createComands
+comm2 = try (do reserved sql "select"
+                col <- columns
+                reserved sql "from"
+                colTable <- colSelect
+                cond <- condition
+                cl <- clause
+                return (Select col colTable cond cl)
+        )
+        <|> try (do reserved sql "create"
+                    createComands
             )
         <|> try (do reserved sql "insert"
                     reserved sql "into"
@@ -125,6 +160,7 @@ comm2 = try (do reserved sql "create"
 
 
 --DELETE
+
 condition = try (do reserved sql "where"
                     boolexp
                 )
@@ -165,8 +201,7 @@ op = try (do reservedOp sql "="
                  return Neq)
 
 
---parseComm :: SourceName -> String -> Either ParseError Command
---parseComm = parse (newParser commSep)
+--FUNCION PARA PARSEAR
 
 loweize::String -> String
 loweize = map toLower

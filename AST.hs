@@ -27,7 +27,7 @@ data Op = Eq
 
 -- COMANDOS
 data Command = Seq Command Command              -- (2) el problema puede ser que no encuentra el segundo comando
-             | Select SelectQuery
+             | Select Columns From Cond Clause
              | CreateDatabase DatabaseName
              | CreateTable Name [ColumnCreation]
              | Insert Name [HeterList]
@@ -52,10 +52,6 @@ data ColumnCreation = Column Name DataType DataLong
 -- Las columnas seleccionadas a partir de un Select
 data Columns = Asterisk 
             | Columns [ColumnName]
- deriving Show
-
--- Consulta completa: Select, From, Where y cláusulas
-data SelectQuery = Query Columns From Cond Clause
  deriving Show
 
 -- CLAUSULAS
