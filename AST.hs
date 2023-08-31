@@ -32,7 +32,6 @@ data Command = Seq Command Command              -- (2) el problema puede ser que
              | CreateTable Name [ColumnCreation]
              | Insert Name [HeterList]
              | Delete Name Cond
-             | Skip                     -- (1) lo ponemos para que corte la ejecución, porque sino no reconoce el eof
  deriving Show
 
 -- CONDICION (WHERE)

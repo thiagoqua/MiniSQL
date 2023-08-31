@@ -125,9 +125,8 @@ order = try (do reserved sql "asc"
 -- COMM PRINCIPAL
 -- funcion que se encarga de combinar expresiones separadas por un ;
 commSep::Parser Command
-commSep = chainl1 comm2 (try (do reservedOp sql ";"
-                                 return Seq))
-
+commSep = do cmdsList <- endBy comm2 (reservedOp sql ";")
+             return (foldl1 Seq cmdsList)
 
 --COMM DE LOS COMANDOS
 comm2 = try (do reserved sql "select"
@@ -156,7 +155,6 @@ comm2 = try (do reserved sql "select"
                     cond <- condition
                     return (Delete tableName cond)
                 )
-        <|> do return Skip
 
 
 --DELETE
