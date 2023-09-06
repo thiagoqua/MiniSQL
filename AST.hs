@@ -26,12 +26,14 @@ data Op = Eq
  deriving Show
 
 -- COMANDOS
-data Command = Seq Command Command              -- (2) el problema puede ser que no encuentra el segundo comando
+data Command = Use DatabaseName Command
+             | Seq Command Command              -- (2) el problema puede ser que no encuentra el segundo comando
              | Select Columns From Cond Clause
-             | CreateDatabase DatabaseName
+             | CreateDatabase DatabaseName Command
              | CreateTable Name [ColumnCreation]
              | Insert Name [HeterList]
              | Delete Name Cond
+             | Skip
  deriving Show
 
 -- CONDICION (WHERE)

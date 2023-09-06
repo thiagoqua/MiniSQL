@@ -24,7 +24,8 @@ sql = makeTokenParser (emptyDef   { commentLine = "--"
                                   , reservedNames = ["from","where","as","order by",
                                                  "asc","desc","into","values",
                                                  "and","or","not",
-                                                 "select","create","database","table","insert","delete",
+                                                 "select","create","database","table",
+                                                 "insert","delete","use",
                                                  "String","Integer","Bool"]
                                   }
                       )
@@ -57,15 +58,31 @@ colCreate' = try (do columnName <- identifier sql
                         else return [Column columnName dataType 0]
                  )
 
-createComands = (do reserved sql "table"
-                    tableName <- identifier sql
-                    columns <- parens sql colCreate
-                    return (CreateTable tableName columns)
-                    )
-                <|> (do reserved sql "database"
-                        name <- identifier sql
-                        return (CreateDatabase name)
-                        )
+
+--USE
+use = try (do reserved sql "create"
+              reserved sql "database"
+              name <- identifier sql
+              reservedOp sql ";"
+              try( do reserved sql "use"
+                      name2 <- identifier sql
+                      reservedOp sql ";"
+                      command <- commSep
+                      return (CreateDatabase name (Use name2 command))
+                 )
+                 <|> ( do commands <- manyTill commSep (try eof)
+                          if null commands
+                           then return (CreateDatabase name Skip)
+                           else fail "Comandos no válidos después de CREATE DATABASE" 
+                     )
+          )
+      <|> (do reserved sql "use"
+              name <- identifier sql
+              reservedOp sql ";"
+              command <- commSep
+              return (Use name command)
+         )
+
 
 
 --INSERT
@@ -122,6 +139,8 @@ order = try (do reserved sql "asc"
                 return DESC
             )
 
+
+
 -- COMM PRINCIPAL
 -- funcion que se encarga de combinar expresiones separadas por un ;
 commSep::Parser Command
@@ -138,8 +157,11 @@ comm2 = try (do reserved sql "select"
                 return (Select col colTable cond cl)
         )
         <|> try (do reserved sql "create"
-                    createComands
-            )
+                    reserved sql "table"
+                    tableName <- identifier sql
+                    columns <- parens sql colCreate
+                    return (CreateTable tableName columns)
+                )
         <|> try (do reserved sql "insert"
                     reserved sql "into"
                     tableName <- identifier sql
@@ -205,4 +227,4 @@ loweize::String -> String
 loweize = map toLower
 
 parseComm :: SourceName -> String -> Either ParseError Command
-parseComm source input = parse (newParser commSep) source (loweize input)
+parseComm source input = parse (newParser use) source (loweize input)
