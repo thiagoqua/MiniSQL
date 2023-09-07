@@ -15,8 +15,10 @@ eval = comm initState
 
 comm state Skip = do
     putStrLn "Archivo ejecutado exitosamente."
+
 comm state (Seq Skip c2) = comm state c2
-comm state (Seq c1 c2) = comm state c1
+comm state (Seq c1 c2) = do comm state c1
+                            comm state c2
 
 comm state (Use dbName c2) = do
     putStrLn $ "Cambiando a la base de datos '" ++ dbName ++ "'."
@@ -28,9 +30,9 @@ comm state (CreateDatabase dbName c1) = do
     evalDatabase dbName
     comm state c1
 
+comm state (CreateTable name columnCreation) = evalTable name columnCreation (currentDatabase state)
 
 --eval (Select columns from cond clause) s = evalSelect columns from cond clause
---eval (CreateTable name [columnCreation]) s = evalTable name [columnCreation]
 --eval (Insert name [heterList]) s = evalInsert name [heterList]
 --eval (Delete name cond) s = evalDelete name cond
 
