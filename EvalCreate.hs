@@ -24,7 +24,7 @@ evalTable name columnCreation currentDatabase = do
 
 tableDefinition [] = []
 tableDefinition [x] = struct x ++ "\n"
-tableDefinition (x:xs) = struct x ++ "\t|\t" ++ tableDefinition xs
+tableDefinition (x:xs) = struct x ++ "|" ++ tableDefinition xs
 
 struct x = "(" ++ name x ++ "," ++ dtype x ++ "," ++ long x ++ ")"
 name (Column colName _ _) = colName

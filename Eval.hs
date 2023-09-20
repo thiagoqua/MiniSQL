@@ -17,6 +17,7 @@ comm state Skip = do
     putStrLn "Archivo ejecutado exitosamente."
 
 comm state (Seq Skip c2) = comm state c2
+
 comm state (Seq c1 c2) = do comm state c1
                             comm state c2
 
@@ -32,7 +33,10 @@ comm state (CreateDatabase dbName c1) = do
 
 comm state (CreateTable name columnCreation) = evalTable name columnCreation (currentDatabase state)
 
---eval (Select columns from cond clause) s = evalSelect columns from cond clause
+comm state (Delete name cond) = evalDelete name cond (currentDatabase state)
+
 --eval (Insert name [heterList]) s = evalInsert name [heterList]
 --eval (Delete name cond) s = evalDelete name cond
+--eval (Select columns from cond clause) s = evalSelect columns from cond clause
+
 
