@@ -6,6 +6,8 @@ import Text.Parsec.Language (emptyDef)
 import AST
 import Data.Char (toLower)
 import Debug.Trace (traceM)
+import Text.XHtml (table)
+import Data.List (isInfixOf)
 
 
 newParser :: Parser a -> Parser a
@@ -59,30 +61,28 @@ colCreate' = try (do columnName <- identifier sql
                  )
 
 
---USE
-use = try (do reserved sql "create"
-              reserved sql "database"
-              name <- identifier sql
-              reservedOp sql ";"
-              try( do reserved sql "use"
-                      name2 <- identifier sql
-                      reservedOp sql ";"
-                      command <- commSep
-                      return (CreateDatabase name (Use name2 command))
-                 )
-                 <|> ( do commands <- manyTill commSep (try eof)
-                          if null commands
-                           then return (CreateDatabase name Skip)
-                           else fail "Comandos no válidos después de CREATE DATABASE" 
-                     )
-          )
-      <|> (do reserved sql "use"
-              name <- identifier sql
-              reservedOp sql ";"
-              command <- commSep
-              return (Use name command)
-         )
+--USE Y CREATE DATABASE
 
+first = try cdbParser <|> useParser
+
+cdbParser = do reserved sql "create"
+               reserved sql "database"
+               name <- identifier sql
+               reservedOp sql ";"
+               using <- resolveUse
+               return (CreateDatabase name using)
+
+resolveUse =    do using <- useParser
+                   return using
+                <|> do anyChar
+                       fail "Comandos no válidos después de CREATE DATABASE"
+                       <|> return Skip
+
+useParser = do reserved sql "use"
+               name <- identifier sql
+               reservedOp sql ";"
+               command <- commSep
+               return (Use name command)
 
 
 --INSERT
@@ -125,21 +125,19 @@ aliasName = do col <- identifier sql
 
 colSelect = sepBy aliasName (spaces >> char ',' >> spaces)
 
-clause = try (do reserved sql "order by"
-                 name <- identifier sql
-                 ord <- order
-                 return (OrderBy name ord)
-             )
-             <|> return ClSkip
+clause = (do reserved sql "order by"
+             name <- identifier sql
+             ord <- order
+             return (OrderBy name ord)
+         )
+         <|> return ClSkip
 
 order = try (do reserved sql "asc"
                 return ASC
             )
-        <|> (do reserved sql "asc"
+        <|> (do reserved sql "desc"
                 return DESC
             )
-
-
 
 -- COMM PRINCIPAL
 -- funcion que se encarga de combinar expresiones separadas por un ;
@@ -161,29 +159,27 @@ comm2 = try (do reserved sql "select"
                     tableName <- identifier sql
                     columns <- parens sql colCreate
                     return (CreateTable tableName columns)
-                )
+            )
         <|> try (do reserved sql "insert"
                     reserved sql "into"
                     tableName <- identifier sql
                     reserved sql "values"
-                    -- input <- lookAhead (manyTill anyChar eof)
-                    -- _ <- traceM ("Input to colInsert: " ++ show input)
                     values <- colInsert     --llamamos a colInsert para dividir cada registro
                     return (Insert tableName values) --guardamos la lista generada adentro de otra lista (chequear)
-                )
+            )
         <|> try (do reserved sql "delete"
                     reserved sql "from"
                     tableName <- identifier sql
                     cond <- condition
                     return (Delete tableName cond)
-                )
-
+            )
 
 --DELETE
 
-condition = try (do reserved sql "where"
-                    boolexp
-                )
+condition = (do reserved sql "where"
+                cond <- boolexp
+                return cond
+            )
             <|> return CoSkip
 
 boolexp  = chainl1 boolexp2 (try (do reserved sql "or"
@@ -226,5 +222,13 @@ op = try (do reservedOp sql "="
 loweize::String -> String
 loweize = map toLower
 
+--FUNCION PARA VER CUAL ES LA INPUT RESTANTE POR CONSUMIR
+
+
+--seeNext = do input <- lookAhead (manyTill anyChar eof)
+--             _ <- traceM ("The next is " ++ show input)
+--             return input
+
+
 parseComm :: SourceName -> String -> Either ParseError Command
-parseComm source input = parse (newParser use) source (loweize input)
+parseComm source input = parse (newParser first) source (loweize input)
