@@ -1,7 +1,7 @@
 module AST where
 import Data.Text.Internal.Fusion (Step(Skip))
 
--- Nuestros tipos
+-- Tipos
 type HeterList = [PrimalType]
 type Name = String
 type TableName = (String,As)
@@ -12,11 +12,11 @@ type DataLong = Integer
 type From = [TableName]
 type Alias = String
 
--- Estructuras de datos
--- Datos soportados
+-- Tipos de datos soportados
 data PrimalType = S String | I Integer | B Bool
  deriving Show
 
+-- Operadores de comparacion
 data Op = Eq 
         | Bt 
         | Bte
@@ -25,9 +25,9 @@ data Op = Eq
         | Neq
  deriving Show
 
--- COMANDOS
+-- Comandos
 data Command = Use DatabaseName Command
-             | Seq Command Command              -- (2) el problema puede ser que no encuentra el segundo comando
+             | Seq Command Command
              | Select Columns From Cond Clause
              | CreateDatabase DatabaseName Command
              | CreateTable Name [ColumnCreation]
@@ -36,26 +36,24 @@ data Command = Use DatabaseName Command
              | Skip
  deriving Show
 
--- CONDICION (WHERE)
+-- Condicion (Where)
 data Cond = CoSkip
-          | Exp Op Name PrimalType       -- WHERE edad > 18 && nombre = "esteban" -> Exp Bt 'edad' (N 18)
+          | Exp Op Name PrimalType
           | CAnd Cond Cond
           | COr Cond Cond
           | CNot Cond
  deriving Show
  
---CREATE TABLE
+--Create Table
 data ColumnCreation = Column Name DataType DataLong
  deriving Show
 
--- SELECT
-
--- Las columnas seleccionadas a partir de un Select
-data Columns = Asterisk 
-            | Columns [ColumnName]
+-- Select
+data Columns = Asterisk                 -- *
+            | Columns [ColumnName]      -- Una o varias columnas
  deriving Show
 
--- CLAUSULAS
+-- Clausulas
 data Clause = ClSkip
             | OrderBy Name Sort
  deriving Show
@@ -64,7 +62,7 @@ data Sort = ASC
           | DESC
  deriving Show
 
--- ALIAS
+-- Alias
 data As = ASkip
         | As Alias
  deriving Show
