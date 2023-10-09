@@ -148,7 +148,6 @@ parseCampo str =
     -- "1" representa la posicion del tipo de dato
     in (head elems, elems !! 1)
 
-
 -- Funcion para encontrar el valor de una columna
 
 splitColumns reg name fields = do

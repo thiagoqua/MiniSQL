@@ -34,4 +34,6 @@ commEval state (CreateTable name columnCreation) = evalTable name columnCreation
 
 commEval state (Delete name cond) = evalDelete name cond (currentDatabase state)
 
+commEval state (Insert name newData) = evalInsert name newData (currentDatabase state)
+
 
