@@ -12,6 +12,9 @@ import System.IO
       SeekMode(AbsoluteSeek, SeekFromEnd),
       IOMode(ReadWriteMode, WriteMode) )
 
+import Evals.Helpers (compareTypes, splitOn)
+import Evals.EvalCondition (verifCond')
+
 import AST
 
 evalInsert tableName newData currentDatabase = do
@@ -20,17 +23,20 @@ evalInsert tableName newData currentDatabase = do
         Just dbName -> do
             let tablePath = dbName </> tableName <.> "txt"
             tableExists <- doesFileExist tablePath
+            -- Revisar si existe la tabla
             if tableExists
                 then do
                     stream <- openFile tablePath ReadWriteMode
                     fields <- hGetLine stream
+                    -- Revisar si el contenido es valido
                     isDataValid <- validateData fields newData
                     let dataToInsert = formatData newData
                     if isDataValid
                         then do
+                            -- Posiciona el puntero al final de los registros existente
                             hSeek stream SeekFromEnd 0
+                            -- Inserta los registros nuevos
                             hPutStr stream dataToInsert
-                            --print dataToInsert
                             hClose stream
                             putStrLn $ "Registro añadido exitosamente"
                         else hClose stream
@@ -38,33 +44,6 @@ evalInsert tableName newData currentDatabase = do
                     putStrLn $ "La tabla '" ++ tableName ++ "' no existe en la base de datos '" ++ dbName ++ "'."
         Nothing -> do
             putStrLn "No se ha seleccionado una base de datos."
-
-formatData [reg] = formatReg reg ++ "\n"
-formatData (reg:regs) = formatReg reg ++ "\n" ++ formatData regs
-
---[S "Esteban",I 20,B True]
---("Esteban", String,x)|(20, Integer)|(True, Bool)\n
-formatReg [value] = 
-    "(" ++ getValue value ++ "," ++ 
-    getDataType value ++ 
-    resolveLength value
-formatReg (value:values) = 
-    "(" ++ getValue value ++ "," ++ 
-    getDataType value ++ 
-    resolveLength value ++ "|" ++
-    formatReg values
-
-getValue (S str) = str
-getValue (B True) = "true"
-getValue (B False) = "false"
-getValue (I num) = show num
-
-getDataType (S _) = "string"
-getDataType (B _) = "bool"
-getDataType (I _) = "integer"
-
-resolveLength (S str) = "," ++ show (length str) ++ ")"
-resolveLength _ = ")"
 
 validateData _ [] = return True
 validateData fields (reg:regs) = do
@@ -79,6 +58,7 @@ validateData fields (reg:regs) = do
                 then validateData fields regs
                 else return False
 
+-- Validar si el tipo de las columnas coincide con los tipos de los datos a ingresar
 validateColumnTypes fields reg index = do
     if index == length fields
         then 
@@ -102,37 +82,55 @@ validateColumnTypes fields reg index = do
                     putStrLn "Los tipos de datos no coinciden."
                     return False
 
+-- Validar si la longitud del string definido en la columna coincide con la longitud del dato a ingresar
 validateColumnLength fields reg index = do
     let validLength = findLength fields index
     let strToInsert = reg !! index
     return (compareLengths strToInsert validLength)
 
+-- Comparar longitudes de strings
 compareLengths (S str) validLength = 
     case readMaybe validLength of
         Just value -> length str <= value
         Nothing -> False
 
--- devuelve el tipo de dato del field en la posición index
+-- Devolver el tipo de dato del campo en 'x' posición (index)
 findDataType campos idx = parseCampo (campos !! idx) 1
 
--- devuelve la longitud del string en la posición index
+-- Devolver la longitud del string en 'x' posición (index)
 findLength campos idx = parseCampo (campos !! idx) 2
 
--- CUIDADO: si el tipo de dato no es string, y si i = 2, falla
 parseCampo str i =
     let elems = map (filter (`notElem` "()")) (splitOn ',' str)
     in elems !! i
 
--- Funciones auxiliares (poner estas funciones en archivo aparte)
-splitOn _ [] = []
-splitOn delimiter list = let (first, rest) = break (== delimiter) list
-                         in first : case rest of
-                             [] -> []
-                             (_:xs) -> splitOn delimiter xs
-                             
--- Función para comparar tipos de datos
-compareTypes :: PrimalType -> String -> Bool
-compareTypes (S _) "string" = True
-compareTypes (I _) "integer" = True
-compareTypes (B _) "bool" = True
-compareTypes _ _ = False
+
+-- Convertir a string la informacion a insertar teniendo en cuenta las reglas definidas
+formatData [reg] = formatReg reg ++ "\n"
+formatData (reg:regs) = formatReg reg ++ "\n" ++ formatData regs
+
+--Ejemplo: Se formatea -> [S "Esteban",I 20,B True] a ("Esteban", String, 20)|(20, Integer)|(True, Bool)\n
+formatReg [value] = 
+    "(" ++ getValue value ++ "," ++ 
+    getDataType value ++ 
+    resolveLength value
+formatReg (value:values) = 
+    "(" ++ getValue value ++ "," ++ 
+    getDataType value ++ 
+    resolveLength value ++ "|" ++
+    formatReg values
+
+-- Funciones auxiliares de formatReg
+getValue (S str) = str
+getValue (B True) = "true"
+getValue (B False) = "false"
+getValue (I num) = show num
+
+getDataType (S _) = "string"
+getDataType (B _) = "bool"
+getDataType (I _) = "integer"
+
+resolveLength (S str) = "," ++ show (length str) ++ ")"
+resolveLength _ = ")"
+
+
