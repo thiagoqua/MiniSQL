@@ -4,12 +4,12 @@ import Data.Text.Internal.Fusion (Step(Skip))
 -- Tipos
 type HeterList = [PrimalType]
 type Name = String
-type TableName = (String,As)
+type TableName = String
 type DatabaseName = String
 type ColumnName = (String,As)
 type DataType = String
 type DataLong = Integer
-type From = [TableName]
+--type From = [TableName]
 type Alias = String
 
 -- Tipos de datos soportados
@@ -28,7 +28,7 @@ data Op = Eq
 -- Comandos
 data Command = Use DatabaseName Command
              | Seq Command Command
-             | Select Columns From Cond Clause
+             | Select Columns TableName Cond Clause
              | CreateDatabase DatabaseName Command
              | CreateTable Name [ColumnCreation]
              | Insert Name [HeterList]

@@ -78,7 +78,7 @@ valueParser = do reserved sql "true"
 columnsParser = try (do reservedOp sql "*"
                         return Asterisk
                 )
-                <|> (do columnSelect <- tablesParser
+                <|> (do columnSelect <- columnsParser'
                         return (Columns columnSelect))
 
 aliasName = do col <- identifier sql
@@ -88,7 +88,7 @@ aliasName = do col <- identifier sql
                    )
                    <|> return (col, ASkip)
 
-tablesParser = commaSeparatorParser aliasName
+columnsParser' = commaSeparatorParser aliasName
 
 clauseParser = (do reserved sql "order by"
                    name <- identifier sql

@@ -66,10 +66,10 @@ commSeparator = do cmdsList <- endBy commands (reservedOp sql ";")
 commands = try (do reserved sql "select"
                    columns <- columnsParser
                    reserved sql "from"
-                   tables <- tablesParser
+                   table <- identifier sql
                    condition <- conditionParser
                    clause <- clauseParser
-                   return (Select columns tables condition clause)
+                   return (Select columns table condition clause)
         )
         <|> try (do reserved sql "create"
                     reserved sql "table"

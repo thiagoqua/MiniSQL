@@ -36,4 +36,4 @@ commEval state (Delete name cond) = evalDelete name cond (currentDatabase state)
 
 commEval state (Insert name newData) = evalInsert name newData (currentDatabase state)
 
-
+commEval state (Select columns from cond clause) = evalSelect columns from cond clause (currentDatabase state)
