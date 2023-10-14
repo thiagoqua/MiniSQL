@@ -6,4 +6,4 @@ Main.exe
 bin/
 cheatGHC.sh
 *.ini
-tests/
+test*

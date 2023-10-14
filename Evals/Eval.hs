@@ -26,8 +26,7 @@ commEval state (Use dbName c2) = do putStrLn $ "Cambiando a la base de datos '" 
                                     let newState = state { currentDatabase = Just dbName }
                                     commEval newState c2
 
-commEval state (CreateDatabase dbName c1) = do putStrLn $ "Creando la base de datos '" ++ dbName ++ "'."
-                                               evalDatabase dbName
+commEval state (CreateDatabase dbName c1) = do evalDatabase dbName
                                                commEval state c1
 
 commEval state (CreateTable name columnCreation) = evalTable name columnCreation (currentDatabase state)

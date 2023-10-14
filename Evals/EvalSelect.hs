@@ -1,12 +1,8 @@
 module Evals.EvalSelect (evalSelect) where
 
-import AST (Cond (..),
-    Op (Eq, Lt, Bt, Lte, Bte, Neq),
-    PrimalType (S, B, I),
-    Columns (Asterisk, Columns),
-    Clause (ClSkip, OrderBy), Sort (ASC, DESC))
+import AST
 
-import Evals.Helpers (compareTypes, splitOn)
+import Evals.Helpers
 import Evals.EvalCondition (verifCond')
 
 import System.Directory ( doesFileExist, renameFile )
@@ -21,6 +17,7 @@ import System.IO
       SeekMode(AbsoluteSeek),
       IOMode(ReadWriteMode, WriteMode), hGetContents, hPutStrLn )
 import Data.List (isInfixOf)
+import Evals.Printers (printAllColumns, printSelectedColumns)
 
 evalSelect columns tableName cond clause currentDatabase = do
     -- Revisar la BDD actual
@@ -42,25 +39,25 @@ evalSelect columns tableName cond clause currentDatabase = do
                             case cond of
                                 CoSkip -> do
                                     case clause of
-                                        ClSkip -> printSelected registers ([] :: [Int])
+                                        ClSkip -> printAllColumns fields registers
                                         OrderBy name sort -> do
                                             if name `isInfixOf` fields
                                             then do
                                                 index <- findColumnPosition name fields 0
                                                 let orderRegs = orderBy sort registers index
-                                                printSelected orderRegs ([] :: [Int])
+                                                printAllColumns fields orderRegs
                                             else do
                                                 putStrLn $ "La columna " ++ name ++ " no existe en la base de datos."
                                 _ -> do
                                         let registersToSelect = verifCond registers cond fields
                                         case clause of
-                                            ClSkip -> printSelected registersToSelect ([] :: [Int])
+                                            ClSkip -> printAllColumns fields registersToSelect
                                             OrderBy name sort -> do
                                                 if name `isInfixOf` fields
                                                 then do
                                                     index <- findColumnPosition name fields 0
                                                     let orderRegs = orderBy sort registersToSelect index
-                                                    printSelected orderRegs ([] :: [Int])
+                                                    printAllColumns fields orderRegs
                                                 else do
                                                     putStrLn $ "La columna " ++ name ++ " no existe en la base de datos."
 
@@ -72,16 +69,14 @@ evalSelect columns tableName cond clause currentDatabase = do
                                             case clause of
                                                 ClSkip -> do
                                                     let indexes = findIndexes fields cols
-                                                    printFields fields indexes
-                                                    printSelected registers indexes
+                                                    printSelectedColumns fields registers indexes
                                                 OrderBy name sort -> do
                                                     if name `isInfixOf` fields
                                                     then do
                                                         index <- findColumnPosition name fields 0
                                                         let orderRegs = orderBy sort registers index
                                                         let indexes = findIndexes fields cols
-                                                        printFields fields indexes
-                                                        printSelected orderRegs indexes
+                                                        printSelectedColumns fields orderRegs indexes
                                                     else do
                                                         putStrLn $ "La columna " ++ name ++ " no existe en la base de datos."
                                         _ -> do
@@ -89,16 +84,14 @@ evalSelect columns tableName cond clause currentDatabase = do
                                                 case clause of
                                                     ClSkip -> do
                                                         let indexes = findIndexes fields cols
-                                                        printFields fields indexes
-                                                        printSelected registersToSelect indexes
+                                                        printSelectedColumns fields registersToSelect indexes
                                                     OrderBy name sort -> do
                                                         if name `isInfixOf` fields
                                                         then do
                                                             index <- findColumnPosition name fields 0
                                                             let orderRegs = orderBy sort registersToSelect index
                                                             let indexes = findIndexes fields cols
-                                                            printFields fields indexes
-                                                            printSelected orderRegs indexes
+                                                            printSelectedColumns fields orderRegs indexes
                                                         else do
                                                             putStrLn $ "La columna " ++ name ++ " no existe en la base de datos."
                                 else do
@@ -125,18 +118,7 @@ parseCampo str i =
     let elems = map (filter (`notElem` "()")) (splitOn ',' str)
     in elems !! i
 
-
-findColumnPosition name fields idx = do
-    if length fields == idx
-        then return (-1)  -- no es necesario
-        else do
-            let columns = splitOn '|' fields    -- ["id-integer", "name-string"]
-            if name `isInfixOf` (columns !! idx)
-                then return idx
-                else findColumnPosition name fields (idx+1)
-
-
--- QSORT
+-- quicksort para ordenar por ord by
 qsort [] _ _ = []
 qsort [x] _ _ = [x]
 qsort (reg:regs) idx sort =
@@ -169,34 +151,4 @@ getColumnValue reg i =
     let regToList = splitOn '|' reg
     in findValue (regToList !! i)
 
--- [(2,integer)|(tiki,string,4)|(19,integer) , (1,integer)|(este,string,4)|(18,integer)]"
-
--- obtenemos los indices de la posicion del nombre de las columnas (de la primera linea)
-findIndexes _ [] = []
-findIndexes fields ((col,_):cols) = do
-    idx <- findColumnPosition col fields 0
-    idx : findIndexes fields cols
-
-printFields fields cols =  do
-    let columns = splitOn '|' fields
-    let regAsStr = makeRegString columns cols
-    putStrLn regAsStr
-
-printSelected regs [] = print regs
-printSelected [reg] cols = do
-    let columns = splitOn '|' reg
-    let regAsStr = makeRegString columns cols
-    putStrLn regAsStr
-printSelected (reg:regs) cols = do
-    let columns = splitOn '|' reg
-    let regAsStr = makeRegString columns cols
-    putStrLn regAsStr
-    printSelected regs cols
-
--- cols - [0,1]
-makeRegString reg [col] = reg !! col
-makeRegString reg (col:cols) = (reg !! col) ++ makeRegString reg cols
-
-
 -- FALTA ALIAS
--- FALTA IMPRIMIR BIEN LO DE ASTERISK (DEVUELVE UN ARREGLO CON LOS RESULTADOS)

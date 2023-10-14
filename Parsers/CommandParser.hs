@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use <$>" #-}
+{-# Language FlexibleContexts #-}
 module Parsers.CommandParser where
 
 import AST

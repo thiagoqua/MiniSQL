@@ -38,7 +38,7 @@ evalInsert tableName newData currentDatabase = do
                             -- Inserta los registros nuevos
                             hPutStr stream dataToInsert
                             hClose stream
-                            putStrLn $ "Registro añadido exitosamente"
+                            putStrLn $ "Registro añadido exitosamente."
                         else hClose stream
                 else do
                     putStrLn $ "La tabla '" ++ tableName ++ "' no existe en la base de datos '" ++ dbName ++ "'."
