@@ -71,24 +71,30 @@ evalSelect columns tableName cond clause currentDatabase = do
                                                     let indexes = findIndexes fields cols
                                                     printSelectedColumns fields registers indexes
                                                 OrderBy name sort -> do
-                                                    if name `isInfixOf` fields
+                                                    -- hacer chequeo columna/alias
+                                                    let columnName = checkNames name cols
+                                                    if columnName `isInfixOf` fields
                                                     then do
-                                                        index <- findColumnPosition name fields 0
+                                                        index <- findColumnPosition columnName fields 0
                                                         let orderRegs = orderBy sort registers index
                                                         let indexes = findIndexes fields cols
                                                         printSelectedColumns fields orderRegs indexes
                                                     else do
                                                         putStrLn $ "La columna " ++ name ++ " no existe en la base de datos."
                                         _ -> do
-                                                let registersToSelect = verifCond registers cond fields
+                                                -- hacer chequeo columna/alias
+                                                let validCond = checkConditionNames cond cols
+                                                let registersToSelect = verifCond registers validCond fields
                                                 case clause of
                                                     ClSkip -> do
                                                         let indexes = findIndexes fields cols
                                                         printSelectedColumns fields registersToSelect indexes
                                                     OrderBy name sort -> do
-                                                        if name `isInfixOf` fields
+                                                        -- hacer chequeo columna/alias
+                                                        let columnName = checkNames name cols
+                                                        if columnName `isInfixOf` fields
                                                         then do
-                                                            index <- findColumnPosition name fields 0
+                                                            index <- findColumnPosition columnName fields 0
                                                             let orderRegs = orderBy sort registersToSelect index
                                                             let indexes = findIndexes fields cols
                                                             printSelectedColumns fields orderRegs indexes
@@ -98,6 +104,28 @@ evalSelect columns tableName cond clause currentDatabase = do
                                     putStrLn "Hay una columna (o varias) que no existe en la base de datos."
                     hClose stream
                 else putStrLn "No existe la tabla seleccionada."
+
+-- chequea que el alias corresponda a un nombre de columna
+-- si no es un alias, entonces se trata del nombre de la columna
+-- si no es ninguno de los dos, de eso se encarga verifCond (tira una excepcion)
+checkNames name [(column,As alias)] = 
+    if name == alias
+        then column
+        else name
+checkNames name ((column,As alias) : cols) = 
+    if name == alias
+        then column
+        else checkNames name cols
+ 
+ -- devuelve una nueva condición con los alias cambiados por los correspondientes
+ -- nombres de columnas
+checkConditionNames CoSkip _ = CoSkip
+checkConditionNames (CAnd s1 s2) cols = CAnd (checkConditionNames s1 cols) (checkConditionNames s2 cols)
+checkConditionNames (COr s1 s2) cols = COr (checkConditionNames s1 cols) (checkConditionNames s2 cols)
+checkConditionNames (CNot s1) cols = CNot (checkConditionNames s1 cols)
+checkConditionNames (Exp op name primalType) cols = Exp op columnName primalType
+    where
+        columnName = checkNames name cols
 
 verifCond [] _ _ = []
 verifCond (x:xs) cond fields = if verifCond' x cond fields
@@ -150,5 +178,3 @@ mayores (reg:regs) p idx =
 getColumnValue reg i =
     let regToList = splitOn '|' reg
     in findValue (regToList !! i)
-
--- FALTA ALIAS

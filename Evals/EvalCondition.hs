@@ -4,6 +4,7 @@ import AST
 import Text.Read (readMaybe)
 import Data.List (isInfixOf)
 import Evals.Helpers (compareTypes, splitOn)
+import System.Directory.Internal.Prelude (exitFailure)
 
 -- Funcion para verificar que se cumpla la condicion en un registro
 verifCond' reg (CAnd cond1 cond2) fields = verifCond' reg cond1 fields && verifCond' reg cond2 fields
@@ -26,8 +27,7 @@ verifCond' reg (Exp op name primalType) fields = do
                              --putStrLn "El tipo de dato del valor a comparar no coincide con el tipo de dato del campo."
                 Nothing -> False
                            --putStrLn "No se encontró el tipo de dato de la columna.";
-        else False
-            --putStrLn $ "No se encontró el nombre de la columna '" ++ name ++ "' en 'fields'."
+        else error $ "No se encontró el nombre de la columna '" ++ name ++ "' en 'fields'."
 
 -- Funcion para evaluar la condicion
 evalCond :: Op -> String -> PrimalType -> Bool

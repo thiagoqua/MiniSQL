@@ -7,3 +7,4 @@ bin/
 cheatGHC.sh
 *.ini
 test*
+*.txt

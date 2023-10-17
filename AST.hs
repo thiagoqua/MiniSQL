@@ -9,7 +9,6 @@ type DatabaseName = String
 type ColumnName = (String,As)
 type DataType = String
 type DataLong = Integer
---type From = [TableName]
 type Alias = String
 
 -- Tipos de datos soportados
