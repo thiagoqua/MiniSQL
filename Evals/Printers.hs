@@ -79,7 +79,3 @@ padTo len str = str ++ replicate (len - length str) ' '
 
 -- simula tabulaciones con espacios
 tabSpaces = replicate 8 ' '
-
--- extrae de la definición de un valor de la bdd (ej. (hernestino,string,10)) 
--- su valor (ej. "hernestino")
-extractValue col = takeWhile (/= ',') (tail col)

@@ -41,25 +41,25 @@ evalSelect columns tableName cond clause currentDatabase = do
                                     case clause of
                                         ClSkip -> printAllColumns fields registers
                                         OrderBy name sort -> do
-                                            if name `isInfixOf` fields
+                                            if columnExists name fields
                                             then do
                                                 index <- findColumnPosition name fields 0
                                                 let orderRegs = orderBy sort registers index
                                                 printAllColumns fields orderRegs
                                             else do
-                                                putStrLn $ "La columna " ++ name ++ " no existe en la base de datos."
+                                                putStrLn $ "\nLa columna " ++ name ++ " no existe en la base de datos."
                                 _ -> do
                                         let registersToSelect = verifCond registers cond fields
                                         case clause of
                                             ClSkip -> printAllColumns fields registersToSelect
                                             OrderBy name sort -> do
-                                                if name `isInfixOf` fields
+                                                if columnExists name fields
                                                 then do
                                                     index <- findColumnPosition name fields 0
                                                     let orderRegs = orderBy sort registersToSelect index
                                                     printAllColumns fields orderRegs
                                                 else do
-                                                    putStrLn $ "La columna " ++ name ++ " no existe en la base de datos."
+                                                    putStrLn $ "\nLa columna " ++ name ++ " no existe en la base de datos."
 
                         Columns cols -> do
                             if checkColumnName cols fields
@@ -73,14 +73,14 @@ evalSelect columns tableName cond clause currentDatabase = do
                                                 OrderBy name sort -> do
                                                     -- hacer chequeo columna/alias
                                                     let columnName = checkNames name cols
-                                                    if columnName `isInfixOf` fields
+                                                    if columnExists columnName fields
                                                     then do
                                                         index <- findColumnPosition columnName fields 0
                                                         let orderRegs = orderBy sort registers index
                                                         let indexes = findIndexes fields cols
                                                         printSelectedColumns fields orderRegs indexes
                                                     else do
-                                                        putStrLn $ "La columna " ++ name ++ " no existe en la base de datos."
+                                                        putStrLn $ "\nLa columna " ++ name ++ " no existe en la base de datos."
                                         _ -> do
                                                 -- hacer chequeo columna/alias
                                                 let validCond = checkConditionNames cond cols
@@ -92,14 +92,14 @@ evalSelect columns tableName cond clause currentDatabase = do
                                                     OrderBy name sort -> do
                                                         -- hacer chequeo columna/alias
                                                         let columnName = checkNames name cols
-                                                        if columnName `isInfixOf` fields
+                                                        if columnExists columnName fields
                                                         then do
                                                             index <- findColumnPosition columnName fields 0
                                                             let orderRegs = orderBy sort registersToSelect index
                                                             let indexes = findIndexes fields cols
                                                             printSelectedColumns fields orderRegs indexes
                                                         else do
-                                                            putStrLn $ "La columna " ++ name ++ " no existe en la base de datos."
+                                                            putStrLn $ "\nLa columna " ++ name ++ " no existe en la base de datos."
                                 else do
                                     putStrLn "Hay una columna (o varias) que no existe en la base de datos."
                     hClose stream
@@ -108,11 +108,9 @@ evalSelect columns tableName cond clause currentDatabase = do
 -- chequea que el alias corresponda a un nombre de columna
 -- si no es un alias, entonces se trata del nombre de la columna
 -- si no es ninguno de los dos, de eso se encarga verifCond (tira una excepcion)
-checkNames name [(column,As alias)] = 
-    if name == alias
-        then column
-        else name
-checkNames name ((column,As alias) : cols) = 
+checkNames name [] = name
+checkNames name ((_,ASkip):cols) = checkNames name cols
+checkNames name ((column,As alias):cols) = 
     if name == alias
         then column
         else checkNames name cols
@@ -133,9 +131,10 @@ verifCond (x:xs) cond fields = if verifCond' x cond fields
     else verifCond xs cond fields
 
 checkColumnName [] _ = True
-checkColumnName ((col,_) : cols) fields = if col `isInfixOf` fields
-                                        then checkColumnName cols fields
-                                        else False
+checkColumnName ((col,_) : cols) fields = 
+    if columnExists col fields
+        then checkColumnName cols fields
+        else False
 
 orderBy sort regs i = qsort regs i sort
 

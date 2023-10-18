@@ -3,7 +3,7 @@ module Evals.EvalCondition (verifCond') where
 import AST
 import Text.Read (readMaybe)
 import Data.List (isInfixOf)
-import Evals.Helpers (compareTypes, splitOn)
+import Evals.Helpers
 import System.Directory.Internal.Prelude (exitFailure)
 
 -- Funcion para verificar que se cumpla la condicion en un registro
@@ -11,7 +11,7 @@ verifCond' reg (CAnd cond1 cond2) fields = verifCond' reg cond1 fields && verifC
 verifCond' reg (COr cond1 cond2) fields = verifCond' reg cond1 fields || verifCond' reg cond2 fields
 verifCond' reg (CNot cond) fields = not (verifCond' reg cond fields)
 verifCond' reg (Exp op name primalType) fields = do
-    if name `isInfixOf` fields
+    if columnExists name fields
         then do
             -- Devolver tipo de dato de la columna especificada
             let colType = findDataType fields name
@@ -27,7 +27,7 @@ verifCond' reg (Exp op name primalType) fields = do
                              --putStrLn "El tipo de dato del valor a comparar no coincide con el tipo de dato del campo."
                 Nothing -> False
                            --putStrLn "No se encontró el tipo de dato de la columna.";
-        else error $ "No se encontró el nombre de la columna '" ++ name ++ "' en 'fields'."
+        else error $ "\nNo se encontró el nombre de la columna '" ++ name ++ "' en 'fields'."
 
 -- Funcion para evaluar la condicion
 evalCond :: Op -> String -> PrimalType -> Bool
@@ -68,7 +68,6 @@ parseCampo str =
     let elems = map (filter (`notElem` "()")) (splitOn ',' str)
     -- "1" representa la posicion del tipo de dato
     in (head elems, elems !! 1)
-
 
 -- Funcion para encontrar el valor de una columna
 
