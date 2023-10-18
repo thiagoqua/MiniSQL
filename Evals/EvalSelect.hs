@@ -2,7 +2,7 @@ module Evals.EvalSelect (evalSelect) where
 
 import AST
 
-import Evals.Helpers
+import Extra.Helpers
 import Evals.EvalCondition (verifCond')
 
 import System.Directory ( doesFileExist, renameFile )
@@ -16,8 +16,7 @@ import System.IO
       openFile,
       SeekMode(AbsoluteSeek),
       IOMode(ReadWriteMode, WriteMode), hGetContents, hPutStrLn )
-import Data.List (isInfixOf)
-import Evals.Printers (printAllColumns, printSelectedColumns)
+import Extra.Printers (printAllColumns, printSelectedColumns)
 
 evalSelect columns tableName cond clause currentDatabase = do
     -- Revisar la BDD actual
@@ -36,27 +35,31 @@ evalSelect columns tableName cond clause currentDatabase = do
                     let registers = lines contents
                     case columns of
                         Asterisk -> do
+                            -- evaluar si hay condicion
                             case cond of
                                 CoSkip -> do
+                                    -- evaluar si hay clausula
                                     case clause of
                                         ClSkip -> printAllColumns fields registers
                                         OrderBy name sort -> do
                                             if columnExists name fields
                                             then do
                                                 index <- findColumnPosition name fields 0
-                                                let orderRegs = orderBy sort registers index
+                                                let orderRegs = qsort registers index sort
                                                 printAllColumns fields orderRegs
                                             else do
                                                 putStrLn $ "\nLa columna " ++ name ++ " no existe en la base de datos."
                                 _ -> do
+                                        -- evaluar la condicion
                                         let registersToSelect = verifCond registers cond fields
+                                         -- evaluar la clausula
                                         case clause of
                                             ClSkip -> printAllColumns fields registersToSelect
                                             OrderBy name sort -> do
                                                 if columnExists name fields
                                                 then do
                                                     index <- findColumnPosition name fields 0
-                                                    let orderRegs = orderBy sort registersToSelect index
+                                                    let orderRegs = qsort registersToSelect index sort
                                                     printAllColumns fields orderRegs
                                                 else do
                                                     putStrLn $ "\nLa columna " ++ name ++ " no existe en la base de datos."
@@ -71,31 +74,33 @@ evalSelect columns tableName cond clause currentDatabase = do
                                                     let indexes = findIndexes fields cols
                                                     printSelectedColumns fields registers indexes
                                                 OrderBy name sort -> do
-                                                    -- hacer chequeo columna/alias
+                                                    -- revisar los nombres de la columna/alias
                                                     let columnName = checkNames name cols
                                                     if columnExists columnName fields
                                                     then do
                                                         index <- findColumnPosition columnName fields 0
-                                                        let orderRegs = orderBy sort registers index
+                                                        let orderRegs = qsort registers index sort
                                                         let indexes = findIndexes fields cols
                                                         printSelectedColumns fields orderRegs indexes
                                                     else do
                                                         putStrLn $ "\nLa columna " ++ name ++ " no existe en la base de datos."
                                         _ -> do
-                                                -- hacer chequeo columna/alias
+                                                -- revisar los nombres de la columna/alias
                                                 let validCond = checkConditionNames cond cols
+                                                -- evaluar la condicion
                                                 let registersToSelect = verifCond registers validCond fields
+                                                -- evaluar la clausula
                                                 case clause of
                                                     ClSkip -> do
                                                         let indexes = findIndexes fields cols
                                                         printSelectedColumns fields registersToSelect indexes
                                                     OrderBy name sort -> do
-                                                        -- hacer chequeo columna/alias
+                                                        -- revisar los nombres de la columna/alias
                                                         let columnName = checkNames name cols
                                                         if columnExists columnName fields
                                                         then do
                                                             index <- findColumnPosition columnName fields 0
-                                                            let orderRegs = orderBy sort registersToSelect index
+                                                            let orderRegs = qsort registersToSelect index sort
                                                             let indexes = findIndexes fields cols
                                                             printSelectedColumns fields orderRegs indexes
                                                         else do
@@ -136,29 +141,24 @@ checkColumnName ((col,_) : cols) fields =
         then checkColumnName cols fields
         else False
 
-orderBy sort regs i = qsort regs i sort
-
--- Devolver la longitud del string en 'x' posición (index)
+-- Funciones para devolver la longitud del string en 'x' posición (index)
 findValue reg = parseCampo reg 0        --reg -> "(2,integer)|(tiki,string,4)|(19,integer)|(false,bool)"
 
 parseCampo str i =
     let elems = map (filter (`notElem` "()")) (splitOn ',' str)
     in elems !! i
 
--- quicksort para ordenar por ord by
+-- quicksort y funciones auxiliares para ordenar por order by
 qsort [] _ _ = []
 qsort [x] _ _ = [x]
-qsort (reg:regs) idx sort =
-    left ++ [reg] ++ right
+qsort (reg:regs) idx sort = left ++ [reg] ++ right
     where
         left = case sort of
             ASC -> qsort men idx sort
             DESC -> qsort may idx sort
-
         right = case sort of
             ASC -> qsort may idx sort
             DESC -> qsort men idx sort
-
         men = menores regs reg idx
         may = mayores regs reg idx
 

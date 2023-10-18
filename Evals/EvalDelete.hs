@@ -2,7 +2,7 @@ module Evals.EvalDelete (evalDelete) where
     
 import AST (Cond (..), Op (Eq, Lt, Bt, Lte, Bte, Neq), PrimalType (S, B, I))
 
-import Evals.Helpers (compareTypes, splitOn)
+import Extra.Helpers (compareTypes, splitOn)
 import Evals.EvalCondition (verifCond')
 
 import System.Directory ( doesFileExist, renameFile )
@@ -16,7 +16,6 @@ import System.IO
       openFile,
       SeekMode(AbsoluteSeek),
       IOMode(ReadWriteMode, WriteMode), hGetContents, hPutStrLn )
-import Data.List (isInfixOf)
 import Control.Monad
 import Data.Char
 import Data.Array (indices)

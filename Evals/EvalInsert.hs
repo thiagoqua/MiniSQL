@@ -12,7 +12,7 @@ import System.IO
       SeekMode(AbsoluteSeek, SeekFromEnd),
       IOMode(ReadWriteMode, WriteMode) )
 
-import Evals.Helpers (compareTypes, splitOn)
+import Extra.Helpers (compareTypes, splitOn)
 import Evals.EvalCondition (verifCond')
 
 import AST

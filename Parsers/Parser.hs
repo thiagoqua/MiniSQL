@@ -12,7 +12,6 @@ import Text.Parsec.Language (emptyDef)
 import Data.Char (toLower)
 import Debug.Trace (traceM)
 import Text.XHtml (table)
-import Data.List (isInfixOf)
 
 -- Punto de entrada del parser
 parseComm :: SourceName -> String -> Either ParseError Command

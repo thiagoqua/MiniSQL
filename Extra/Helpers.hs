@@ -1,4 +1,4 @@
-module Evals.Helpers where
+module Extra.Helpers where
 
 import AST
 import Data.List (isInfixOf)
