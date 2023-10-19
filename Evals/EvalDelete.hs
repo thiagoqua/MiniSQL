@@ -53,19 +53,22 @@ evalDelete name condition currentDatabase = do
                             let registers = lines contents
                             -- registersToInsert contiene los registros que NO cumplen con la condicion
                             -- Como no cumplen la condicion, se guardaran posteriormente en el archivo
-                            let registersToInsert = verifCond registers condition fields
-                            -- Crear un nuevo archivo temporal para escribir los registros actualizados
-                            let tempTablePath = tablePath ++ ".temp"
-                            -- Abrir el nuevo archivo en modo escritura
-                            newStream <- openFile tempTablePath WriteMode
-                            -- Escribir la primera línea (que contiene los campos) en el nuevo archivo
-                            hPutStrLn newStream fields
-                            -- Escribir los registros actualizados en el nuevo archivo
-                            mapM_ (hPutStrLn newStream) registersToInsert
-                            -- Cerrar el nuevo archivo
-                            hClose newStream
-                            -- Renombrar el archivo temporal para reemplazar el original
-                            renameFile tempTablePath tablePath
+                            case verifCond registers condition fields of
+                                Right registersToInsert -> do
+                                    -- Crear un nuevo archivo temporal para escribir los registros actualizados
+                                    let tempTablePath = tablePath ++ ".temp"
+                                    -- Abrir el nuevo archivo en modo escritura
+                                    newStream <- openFile tempTablePath WriteMode
+                                    -- Escribir la primera línea (que contiene los campos) en el nuevo archivo
+                                    hPutStrLn newStream fields
+                                    -- Escribir los registros actualizados en el nuevo archivo
+                                    mapM_ (hPutStrLn newStream) registersToInsert
+                                    -- Cerrar el nuevo archivo
+                                    hClose newStream
+                                    -- Renombrar el archivo temporal para reemplazar el original
+                                    renameFile tempTablePath tablePath
+                                    putStrLn "Registros borrados exitosamente."
+                                Left error -> putStrLn error
                 else do
                     putStrLn $ "La tabla '" ++ name ++ "' no existe en la base de datos '" ++ dbName ++ "'."
         Nothing -> do
@@ -73,7 +76,9 @@ evalDelete name condition currentDatabase = do
 
 
 -- Verifica que se cumpla la condicion en todos los registros
-verifCond [] _ _ = []
-verifCond (x:xs) cond fields = if verifCond' x cond fields
-    then verifCond xs cond fields
-    else x : verifCond xs cond fields
+verifCond [] _ _ = Right []
+verifCond (x:xs) cond fields = 
+    case verifCond' x cond fields of
+        Right True -> verifCond xs cond fields
+        Right False -> (x :) <$> verifCond xs cond fields
+        Left errorMsg -> Left errorMsg

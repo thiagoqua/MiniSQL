@@ -7,27 +7,33 @@ import Extra.Helpers
 import System.Directory.Internal.Prelude (exitFailure)
 
 -- Funcion para verificar que se cumpla la condicion en un registro
-verifCond' reg (CAnd cond1 cond2) fields = verifCond' reg cond1 fields && verifCond' reg cond2 fields
-verifCond' reg (COr cond1 cond2) fields = verifCond' reg cond1 fields || verifCond' reg cond2 fields
-verifCond' reg (CNot cond) fields = not (verifCond' reg cond fields)
-verifCond' reg (Exp op name primalType) fields = do
-    if columnExists name fields
-        then do
-            -- Devolver tipo de dato de la columna especificada
-            let colType = findDataType fields name
-            case colType of
-                Just typeStr ->
-                    -- Comparar el tipo de dato de la columna con el tipo de dato del valor a comparar
-                    if compareTypes primalType typeStr
-                        then
-                            let value = splitColumns reg name fields
-                            in evalCond op value primalType
-                            --putStrLn $ "Registros eliminados de la tabla '" ++ name ++ "' en la base de datos '" ++ dbName ++ "'."
-                        else False
-                             --putStrLn "El tipo de dato del valor a comparar no coincide con el tipo de dato del campo."
-                Nothing -> False
-                           --putStrLn "No se encontró el tipo de dato de la columna."
-        else error $ "\nNo se encontró el nombre de la columna '" ++ name ++ "' en 'fields'."
+
+verifCond' reg (CAnd cond1 cond2) fields = do
+    result1 <- verifCond' reg cond1 fields
+    result2 <- verifCond' reg cond2 fields
+    return (result1 && result2)
+
+verifCond' reg (COr cond1 cond2) fields = do
+    result1 <- verifCond' reg cond1 fields
+    result2 <- verifCond' reg cond2 fields
+    return (result1 || result2)
+
+verifCond' reg (CNot cond) fields = do
+    result <- verifCond' reg cond fields
+    return (not result)
+
+verifCond' reg (Exp op name primalType) fields =
+    if columnExists name fields then
+        case findDataType fields name of
+            Just typeStr -> 
+                if compareTypes primalType typeStr then
+                    Right $ evalCond op (splitColumns reg name fields) primalType
+                else 
+                    Right False
+            Nothing -> 
+                Right False
+    else 
+        Left ("\nNo se encontró el nombre de la columna '" ++ name ++ "' en 'fields'.")
 
 -- Funcion para evaluar la condicion
 evalCond :: Op -> String -> PrimalType -> Bool
