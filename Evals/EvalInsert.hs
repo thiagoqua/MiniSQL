@@ -69,13 +69,15 @@ validateColumnTypes fields reg index = do
                 then
                     if colType == "string"
                         then do
-                            isValidColumnLength <- validateColumnLength fields reg index
-                            if isValidColumnLength
-                                then
-                                    validateColumnTypes fields reg (index + 1)
-                                else do
-                                    putStrLn "La longitud del string supera el limite establecido."
-                                    return False
+                            case validateColumnLength fields reg index of
+                                Just maxValid -> if fst maxValid /= (-1)
+                                    then do
+                                        putStrLn $ "La longitud del string supera el limite establecido de " ++ show (fst maxValid) ++ " caracteres en el valor '" ++ snd maxValid ++ "'."
+                                        return False
+                                    else do 
+                                        putStrLn "Hubo un error al leer alguno de los números"
+                                        return False
+                                Nothing -> validateColumnTypes fields reg (index + 1)
                         else
                             validateColumnTypes fields reg (index + 1)
                 else do
@@ -83,16 +85,19 @@ validateColumnTypes fields reg index = do
                     return False
 
 -- Validar si la longitud del string definido en la columna coincide con la longitud del dato a ingresar
+validateColumnLength::[String] -> [PrimalType] -> Int -> Maybe (Int,String)
 validateColumnLength fields reg index = do
     let validLength = findLength fields index
     let strToInsert = reg !! index
-    return (compareLengths strToInsert validLength)
+    compareLengths strToInsert validLength
 
 -- Comparar longitudes de strings
 compareLengths (S str) validLength = 
     case readMaybe validLength of
-        Just value -> length str <= value
-        Nothing -> False
+        Just value -> if length str <= value
+                        then Nothing
+                        else Just (value,str)
+        Nothing -> Just ((-1),"")
 
 -- Devolver el tipo de dato del campo en 'x' posición (index)
 findDataType campos idx = parseCampo (campos !! idx) 1

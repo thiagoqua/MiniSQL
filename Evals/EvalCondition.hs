@@ -37,30 +37,39 @@ verifCond' reg (Exp op name primalType) fields =
 
 -- Funcion para evaluar la condicion
 evalCond :: Op -> String -> PrimalType -> Bool
-evalCond Eq colValue (S value) = colValue == value
 evalCond Eq colValue (I value) = colValue == show value
-evalCond Eq colValue (B value) = colValue == show value
+evalCond Eq colValue (S value) = colValue == value
+evalCond Eq colValue (B value) = parseBool colValue == value
 
 evalCond Bt colValue (I value) = case readMaybe colValue of
                                     Just number -> number > value
                                     Nothing -> False
+evalCond Bt colValue (S value) = colValue > value
+evalCond Bt colValue (B value) = parseBool colValue > value
 
 evalCond Bte colValue (I value) = case readMaybe colValue of
                                     Just number -> number >= value
                                     Nothing -> False
+evalCond Bte colValue (S value) = colValue >= value
+evalCond Bte colValue (B value) = parseBool colValue >= value
 
 evalCond Lt colValue (I value) = case readMaybe colValue of
                                     Just number -> number < value
                                     Nothing -> False
+evalCond Lt colValue (S value) = colValue < value
+evalCond Lt colValue (B value) = parseBool colValue < value
 
 evalCond Lte colValue (I value) = case readMaybe colValue of
                                     Just number -> number <= value
                                     Nothing -> False
+evalCond Lte colValue (S value) = colValue <= value
+evalCond Lte colValue (B value) = parseBool colValue <= value
 
-evalCond Neq colValue (S value) = colValue /= value
 evalCond Neq colValue (I value) = colValue /= show value
-evalCond Neq colValue (B value) = colValue /= show value
+evalCond Neq colValue (S value) = colValue /= value
+evalCond Neq colValue (B value) = parseBool colValue /= value
 
+parseBool str = str == "true"
 
 -- Funciones para encontrar el tipo de dato de una columna en la primera línea del archivo
 
