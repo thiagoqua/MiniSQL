@@ -40,14 +40,15 @@ createDatabaseParser = do reserved sql "create"
                           reserved sql "database"
                           name <- identifier sql
                           reservedOp sql ";"
-                          using <- resolveUse
-                          return (CreateDatabase name using)
+                          next <- resolveNext
+                          return (CreateDatabase name next)
 
 -- Verifica si existe un "use" despues de "create database" (de acuerdo a las reglas definidas)
-resolveUse =    do useParser
-                <|> do anyChar
-                       fail "Comandos no válidos después de CREATE DATABASE"
-                       <|> return Skip
+resolveNext =    do useParser
+                 <|> do createDatabaseParser
+                 <|> do anyChar
+                        fail "Comandos no válidos después de CREATE DATABASE"
+                        <|> return Skip
 
 -- Parsea "use"
 useParser = do reserved sql "use"
@@ -59,7 +60,9 @@ useParser = do reserved sql "use"
 -- Parser que se encarga de combinar comandos separadas por un ;
 commSeparator :: Parser Command
 commSeparator = do cmdsList <- endBy commands (reservedOp sql ";")
-                   return (foldl1 Seq cmdsList)
+                   case cmdsList of
+                        [] -> return Skip
+                        list -> return (foldl1 Seq list)
 
 -- Parser de comandos
 commands = try (do reserved sql "select"

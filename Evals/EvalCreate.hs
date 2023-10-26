@@ -5,8 +5,11 @@ import System.FilePath
 import AST
 
 evalDatabase databaseName = do let databasePath = "./" ++ databaseName
-                               createDirectory databasePath
-                               putStrLn $ "Base de datos '" ++ databaseName ++ "' creada."
+                               directoryExists <- doesDirectoryExist databasePath
+                               if directoryExists
+                                then putStrLn $ "La base de datos '" ++ databaseName ++ "' que intenta crear ya existe."
+                                else do createDirectory databasePath
+                                        putStrLn $ "Base de datos '" ++ databaseName ++ "' creada."
 
 
 evalTable name columnCreation currentDatabase = do
