@@ -36,7 +36,9 @@ create = try (do columnName <- identifier sql
                  if dataType == "string"
                     then do reservedOp sql "-"
                             dataLong <- integer sql
-                            return [Column columnName dataType dataLong]
+                            if dataLong < 1
+                                   then fail "bigger than 0"
+                                   else return [Column columnName dataType dataLong]
                     else return [Column columnName dataType 0]
              )
 

@@ -21,58 +21,53 @@ import Data.Char
 import Data.Array (indices)
 
 evalDelete name condition currentDatabase = do
-    -- Revisar la BDD actual
-    case currentDatabase of
-        Just dbName -> do
-            let tablePath = dbName </> name <.> "txt"
-            tableExists <- doesFileExist tablePath
-            -- Revisar que la tabla exista
-            if tableExists
-                then
-                    case condition of
-                        CoSkip -> do
-                            -- Abrir archivo en modo de lectura/escritura
-                            stream <- openFile tablePath ReadWriteMode
-                            -- Leer la primera línea y guardarla en una variable
-                            fields <- hGetLine stream
-                            -- Posicionar el puntero del archivo al principio
-                            hSeek stream AbsoluteSeek 0
-                            -- Eliminar el contenido actual del archivo
-                            hSetFileSize stream 0
-                            -- Escribir la primera linea de vuelta en el archivo
-                            hPutStr stream (fields ++ "\n")
-                            -- Cerrar el archivo
-                            hClose stream
-                            putStrLn $ "Registros eliminados de la tabla '" ++ name ++ "' en la base de datos '" ++ dbName ++ "'."
-                        condition -> do
-                            stream <- openFile tablePath ReadWriteMode
-                            fields <- hGetLine stream
-                            -- Guardar todo el contenido del archivo, menos la primera linea
-                            contents <- hGetContents stream
-                            -- Dividir el contenido en líneas
-                            let registers = lines contents
-                            -- registersToInsert contiene los registros que NO cumplen con la condicion
-                            -- Como no cumplen la condicion, se guardaran posteriormente en el archivo
-                            case verifCond registers condition fields of
-                                Right registersToInsert -> do
-                                    -- Crear un nuevo archivo temporal para escribir los registros actualizados
-                                    let tempTablePath = tablePath ++ ".temp"
-                                    -- Abrir el nuevo archivo en modo escritura
-                                    newStream <- openFile tempTablePath WriteMode
-                                    -- Escribir la primera línea (que contiene los campos) en el nuevo archivo
-                                    hPutStrLn newStream fields
-                                    -- Escribir los registros actualizados en el nuevo archivo
-                                    mapM_ (hPutStrLn newStream) registersToInsert
-                                    -- Cerrar el nuevo archivo
-                                    hClose newStream
-                                    -- Renombrar el archivo temporal para reemplazar el original
-                                    renameFile tempTablePath tablePath
-                                    putStrLn "Registros borrados exitosamente."
-                                Left error -> putStrLn error
-                else do
-                    putStrLn $ "La tabla '" ++ name ++ "' no existe en la base de datos '" ++ dbName ++ "'."
-        Nothing -> do
-                    putStrLn "No se ha seleccionado una base de datos."
+    let tablePath = currentDatabase </> name <.> "txt"
+    tableExists <- doesFileExist tablePath
+    -- Revisar que la tabla exista
+    if tableExists
+        then
+            case condition of
+                CoSkip -> do
+                    -- Abrir archivo en modo de lectura/escritura
+                    stream <- openFile tablePath ReadWriteMode
+                    -- Leer la primera línea y guardarla en una variable
+                    fields <- hGetLine stream
+                    -- Posicionar el puntero del archivo al principio
+                    hSeek stream AbsoluteSeek 0
+                    -- Eliminar el contenido actual del archivo
+                    hSetFileSize stream 0
+                    -- Escribir la primera linea de vuelta en el archivo
+                    hPutStr stream (fields ++ "\n")
+                    -- Cerrar el archivo
+                    hClose stream
+                    putStrLn $ "Registros eliminados de la tabla '" ++ name ++ "' en la base de datos '" ++ currentDatabase ++ "'."
+                condition -> do
+                    stream <- openFile tablePath ReadWriteMode
+                    fields <- hGetLine stream
+                    -- Guardar todo el contenido del archivo, menos la primera linea
+                    contents <- hGetContents stream
+                    -- Dividir el contenido en líneas
+                    let registers = lines contents
+                    -- registersToInsert contiene los registros que NO cumplen con la condicion
+                    -- Como no cumplen la condicion, se guardaran posteriormente en el archivo
+                    case verifCond registers condition fields of
+                        Right registersToInsert -> do
+                            -- Crear un nuevo archivo temporal para escribir los registros actualizados
+                            let tempTablePath = tablePath ++ ".temp"
+                            -- Abrir el nuevo archivo en modo escritura
+                            newStream <- openFile tempTablePath WriteMode
+                            -- Escribir la primera línea (que contiene los campos) en el nuevo archivo
+                            hPutStrLn newStream fields
+                            -- Escribir los registros actualizados en el nuevo archivo
+                            mapM_ (hPutStrLn newStream) registersToInsert
+                            -- Cerrar el nuevo archivo
+                            hClose newStream
+                            -- Renombrar el archivo temporal para reemplazar el original
+                            renameFile tempTablePath tablePath
+                            putStrLn "Registros borrados exitosamente."
+                        Left error -> putStrLn error
+        else do
+            putStrLn $ "La tabla '" ++ name ++ "' no existe en la base de datos '" ++ currentDatabase ++ "'."
 
 
 -- Verifica que se cumpla la condicion en todos los registros

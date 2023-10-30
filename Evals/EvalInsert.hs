@@ -18,32 +18,27 @@ import Evals.EvalCondition (verifCond')
 import AST
 
 evalInsert tableName newData currentDatabase = do
-    -- Revisar la BDD actual
-    case currentDatabase of
-        Just dbName -> do
-            let tablePath = dbName </> tableName <.> "txt"
-            tableExists <- doesFileExist tablePath
-            -- Revisar si existe la tabla
-            if tableExists
+    let tablePath = currentDatabase </> tableName <.> "txt"
+    tableExists <- doesFileExist tablePath
+    -- Revisar si existe la tabla
+    if tableExists
+        then do
+            stream <- openFile tablePath ReadWriteMode
+            fields <- hGetLine stream
+            -- Revisar si el contenido es valido
+            isDataValid <- validateData fields newData
+            let dataToInsert = formatData newData
+            if isDataValid
                 then do
-                    stream <- openFile tablePath ReadWriteMode
-                    fields <- hGetLine stream
-                    -- Revisar si el contenido es valido
-                    isDataValid <- validateData fields newData
-                    let dataToInsert = formatData newData
-                    if isDataValid
-                        then do
-                            -- Posiciona el puntero al final de los registros existente
-                            hSeek stream SeekFromEnd 0
-                            -- Inserta los registros nuevos
-                            hPutStr stream dataToInsert
-                            hClose stream
-                            putStrLn $ "Registro añadido exitosamente."
-                        else hClose stream
-                else do
-                    putStrLn $ "La tabla '" ++ tableName ++ "' no existe en la base de datos '" ++ dbName ++ "'."
-        Nothing -> do
-            putStrLn "No se ha seleccionado una base de datos."
+                    -- Posiciona el puntero al final de los registros existente
+                    hSeek stream SeekFromEnd 0
+                    -- Inserta los registros nuevos
+                    hPutStr stream dataToInsert
+                    hClose stream
+                    putStrLn $ "Registro añadido exitosamente."
+                else hClose stream
+        else do
+            putStrLn $ "La tabla '" ++ tableName ++ "' no existe en la base de datos '" ++ currentDatabase ++ "'."
 
 validateData _ [] = return True
 validateData fields (reg:regs) = do
@@ -137,5 +132,3 @@ getDataType (I _) = "integer"
 
 resolveLength (S str) = "," ++ show (length str) ++ ")"
 resolveLength _ = ")"
-
-
