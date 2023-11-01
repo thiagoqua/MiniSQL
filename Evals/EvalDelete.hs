@@ -2,7 +2,7 @@ module Evals.EvalDelete (evalDelete) where
     
 import AST (Cond (..), Op (Eq, Lt, Bt, Lte, Bte, Neq), PrimalType (S, B, I))
 
-import Extra.Helpers (compareTypes, splitOn)
+import Extra.Helpers (splitOn)
 import Evals.EvalCondition (verifCond')
 
 import System.Directory ( doesFileExist, renameFile )

@@ -7,6 +7,7 @@ import Evals.EvalCondition (verifCond')
 
 import System.Directory ( doesFileExist, renameFile )
 import System.FilePath ( (<.>), (</>) )
+import Text.Read (readMaybe)
 import System.IO
     ( hClose,
       hSeek,
@@ -37,30 +38,30 @@ evalSelect columns tableName cond clause currentDatabase = do
                         CoSkip -> do
                             -- evaluar si hay clausula
                             case clause of
-                                ClSkip -> printAllColumns fields registers
+                                ClSkip -> printAllColumns fields registers tableName
                                 OrderBy name sort -> do
                                     if columnExists name fields
                                     then do
                                         index <- findColumnPosition name fields 0
                                         let orderRegs = qsort registers index sort
-                                        printAllColumns fields orderRegs
+                                        printAllColumns fields orderRegs tableName
                                     else do
-                                        putStrLn $ "\nLa columna " ++ name ++ " no existe en la base de datos."
+                                        putStrLn $ "\nLa columna '" ++ name ++ "' no existe en la tabla."
                         _ -> do
                                 -- evaluar la condicion
                                 case verifCond registers cond fields of
                                     Right registersToSelect -> 
                                         -- evaluar la clausula
                                         case clause of
-                                            ClSkip -> printAllColumns fields registersToSelect
+                                            ClSkip -> printAllColumns fields registersToSelect tableName
                                             OrderBy name sort -> do
                                                 if columnExists name fields
                                                 then do
                                                     index <- findColumnPosition name fields 0
                                                     let orderRegs = qsort registersToSelect index sort
-                                                    printAllColumns fields orderRegs
+                                                    printAllColumns fields orderRegs tableName
                                                 else do
-                                                    putStrLn $ "\nLa columna " ++ name ++ " no existe en la base de datos."
+                                                    putStrLn $ "\nLa columna '" ++ name ++ "' no existe en la tabla."
                                     Left error -> putStrLn error
                 Columns cols -> do
                     if checkColumnName cols fields
@@ -81,7 +82,7 @@ evalSelect columns tableName cond clause currentDatabase = do
                                                 let indexes = findIndexes fields cols
                                                 printSelectedColumns fields orderRegs indexes
                                             else do
-                                                putStrLn $ "\nLa columna " ++ name ++ " no existe en la base de datos."
+                                                putStrLn $ "\nLa columna '" ++ name ++ "' no existe en la tabla."
                                 _ -> do
                                         -- revisar los nombres de la columna/alias
                                         let validCond = checkConditionNames cond cols
@@ -103,7 +104,7 @@ evalSelect columns tableName cond clause currentDatabase = do
                                                             let indexes = findIndexes fields cols
                                                             printSelectedColumns fields orderRegs indexes
                                                         else do
-                                                            putStrLn $ "\nLa columna " ++ name ++ " no existe en la base de datos."
+                                                            putStrLn $ "\nLa columna '" ++ name ++ "' no existe en la tabla."
                                             Left error -> putStrLn error
                         else do
                             putStrLn "Hay una columna (o varias) que no existe en la base de datos."
@@ -166,15 +167,34 @@ qsort (reg:regs) idx sort = left ++ [reg] ++ right
 
 menores [] _ _ = []
 menores (reg:regs) p idx =
-    if getColumnValue reg idx < getColumnValue p idx
-    then reg : menores regs p idx
-    else menores regs p idx
+    let regValue = getColumnValue reg idx
+        pivotValue = getColumnValue p idx
+    in case checkInts regValue pivotValue of
+        Just (rv,pv) -> if rv < pv
+                        then reg : menores regs p idx
+                        else menores regs p idx
+        Nothing -> if regValue < pivotValue
+                    then reg : menores regs p idx
+                    else menores regs p idx
 
 mayores [] _ _ = []
 mayores (reg:regs) p idx =
-    if getColumnValue reg idx >= getColumnValue p idx
-    then reg : mayores regs p idx
-    else mayores regs p idx
+    let regValue = getColumnValue reg idx
+        pivotValue = getColumnValue p idx
+    in case checkInts regValue pivotValue of
+        Just (rv,pv) -> if rv >= pv
+                        then reg : mayores regs p idx
+                        else mayores regs p idx
+        Nothing -> if regValue >= pivotValue
+                    then reg : mayores regs p idx
+                    else mayores regs p idx
+
+checkInts regValue pivotValue = 
+    case (readMaybe regValue :: Maybe Int) of
+        Just r -> case (readMaybe pivotValue :: Maybe Int) of
+                    Just p -> Just (r,p)       
+                    Nothing -> Nothing
+        Nothing -> Nothing
 
 getColumnValue reg i =
     let regToList = splitOn '|' reg

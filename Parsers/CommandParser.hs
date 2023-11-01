@@ -82,7 +82,10 @@ columnsParser = try (do reservedOp sql "*"
                         return Asterisk
                 )
                 <|> (do columnSelect <- columnsParser'
-                        return (Columns columnSelect))
+                        case columnSelect of
+                            [] -> fail "No hay columnas seleccionadas."
+                            cols -> return (Columns cols)
+                     )
 
 aliasName = do col <- identifier sql
                try (do reserved sql "as"

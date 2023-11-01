@@ -28,8 +28,8 @@ verifCond' reg (Exp op name primalType) fields =
             Just typeStr -> 
                 if compareTypes primalType typeStr then
                     Right $ evalCond op (splitColumns reg name fields) primalType
-                else 
-                    Right False
+                else
+                    Left "Los tipos de los valores a comparar en la condición no son iguales."
             Nothing -> 
                 Right False
     else 

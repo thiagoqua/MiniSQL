@@ -6,8 +6,8 @@ import AST
 -- FUNCIONES PARA IMPRESIÓN POR PANTALLA
 
 -- imprime todos los registros (asterisco)
-printAllColumns fields regs = do
-    putStrLn "\nSelect output:\n"
+printAllColumns fields regs tableName = do
+    putStrLn $ "\nResultados del comando SELECT para la tabla '" ++ tableName ++ "':\n" 
     let colNames = findAllColumnNames fields
     let cols = findIndexes fields colNames
     printColumns (fields : regs) cols
@@ -70,7 +70,7 @@ makeRegString reg (col:cols) colsWidth idx = prefix ++ paddedValue ++ next cols
         
         paddedValue = padTo (colsWidth !! idx) (extractValue (reg !! col))
 
-        next [] = " |"
+        next [] = tabSpaces ++ "|"
         next cols = makeRegString reg cols colsWidth (idx + 1)
 
 -- completa con espacios la cantidad de caracteres que le faltan al string para llegar al 
@@ -78,4 +78,4 @@ makeRegString reg (col:cols) colsWidth idx = prefix ++ paddedValue ++ next cols
 padTo len str = str ++ replicate (len - length str) ' '
 
 -- simula tabulaciones con espacios
-tabSpaces = replicate 8 ' '
+tabSpaces = replicate 4 ' '
