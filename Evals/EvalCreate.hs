@@ -1,9 +1,10 @@
 module Evals.EvalCreate (evalDatabase, evalTable) where
 
-import System.Directory (createDirectory, doesDirectoryExist, doesFileExist)
+import System.Directory (createDirectory, doesDirectoryExist, doesFileExist, getDirectoryContents)
 import System.FilePath
 import AST
-
+import Data.List (nub)
+import Control.Monad (when)
 -- Librerías para cambiar los permisos de los archivos de tablas
 
 -- Linux
@@ -24,9 +25,37 @@ evalTable name columnCreation currentDatabase = do
     if tableExists
         then putStrLn $ "La tabla '" ++ name ++ "' ya existe en la base de datos '" ++ currentDatabase ++ "'."
         else do
-            writeFile tablePath (tableDefinition columnCreation)
-            -- setTablePermissions tablePath
-            putStrLn $ "Tabla '" ++ name ++ "' creada en la base de datos '" ++ currentDatabase ++ "'."
+            valid <- evalColumnNames name columnCreation
+            when valid $ do
+                    writeFile tablePath (tableDefinition columnCreation)
+                    -- setTablePermissions tablePath
+                    putStrLn $ "Tabla '" ++ name ++ "' creada en la base de datos '" ++ currentDatabase ++ "'."
+
+evalColumnNames tableName columns = do
+    let list = extractName columns
+    noDuplicate <- hasNoDuplicates tableName list
+    noEqTableName <- hasNoEqualTableName tableName columns
+    return (noDuplicate && noEqTableName)
+
+-- Funciones para verificar que los nombres de las columnas de una tabla no sean iguales
+extractName [] = []
+extractName ((Column name _ _) : xs) = name : extractName xs
+
+hasNoDuplicates name xs = do
+    if length xs == length (nub xs)
+    then return True
+    else do
+        putStrLn $ "La tabla '" ++ name ++ "' tiene columnas repetidas."
+        return False
+
+-- Funcion que verifica que las columnas de la tabla no tengan nombres iguales a la tabla
+hasNoEqualTableName _ [] = return True
+hasNoEqualTableName tableName ((Column name _ _) : xs) =
+    if tableName == name
+    then do
+        putStrLn $ "El nombre de alguna columna coincide con el de la tabla '" ++ tableName ++ "'."
+        return False
+    else hasNoEqualTableName tableName xs
 
 -- Funcion que genera un string de acuerdo a las reglas para la creacion de una tabla
 tableDefinition [x] = struct x ++ "\n"
@@ -34,7 +63,7 @@ tableDefinition (x:xs) = struct x ++ "|" ++ tableDefinition xs
 
 -- Funcion auxiliar de tableDefinition
 struct x = "(" ++ name x ++ "," ++ dtype x ++ "," ++ long x ++ ")"
-    where 
+    where
         name (Column colName _ _) = colName
         dtype (Column _ dtype _) = dtype
         long (Column _ _ long) = show long

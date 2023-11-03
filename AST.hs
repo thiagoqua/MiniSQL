@@ -6,13 +6,13 @@ type HeterList = [PrimalType]
 type Name = String
 type TableName = String
 type DatabaseName = String
-type ColumnName = (String,As)
-type DataType = String
+type ColumnName = (String,As)   -- cambiar por (Name, As)
+type DataType = String          -- cambiar por data DataType = String Int | Integer | Bool (para parsear en el eval)
 type DataLong = Integer
 type Alias = String
 
 -- Tipos de datos soportados
-data PrimalType = S String | I Integer | B Bool
+data PrimalType = S String | I Integer | B Bool         -- cambiar por S String Int (para el parser)
  deriving Show
 
 -- Operadores de comparacion
