@@ -12,7 +12,7 @@ import System.IO
       SeekMode(AbsoluteSeek, SeekFromEnd),
       IOMode(ReadWriteMode, WriteMode) )
 
-import Extra.Helpers (compareTypes, splitOn, parseFields)
+import Extra.Helpers
 
 import AST
 
@@ -84,31 +84,3 @@ validateColumnLength fields reg index = do
                             S _ l -> l >= len
                             _ -> False    
         _ -> False
-
--- Convertir a string la informacion a insertar teniendo en cuenta las reglas definidas
-formatData [reg] = formatReg reg ++ "\n"
-formatData (reg:regs) = formatReg reg ++ "\n" ++ formatData regs
-
---Ejemplo: Se formatea -> [S "Esteban",I 20,B True] a ("Esteban", String, 20)|(20, Integer)|(True, Bool)\n
-formatReg [value] =
-    "(" ++ getValue value ++ "," ++
-    getDataType value ++
-    resolveLength value
-formatReg (value:values) =
-    "(" ++ getValue value ++ "," ++
-    getDataType value ++
-    resolveLength value ++ "|" ++
-    formatReg values
-
--- Funciones auxiliares de formatReg
-getValue (S str _) = str
-getValue (B True) = "true"
-getValue (B False) = "false"
-getValue (I num) = show num
-
-getDataType (S _ _) = "string"
-getDataType (B _) = "bool"
-getDataType (I _) = "integer"
-
-resolveLength (S str _) = "," ++ show (length str) ++ ")"
-resolveLength _ = ")"

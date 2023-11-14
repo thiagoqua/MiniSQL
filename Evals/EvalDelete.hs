@@ -2,8 +2,8 @@ module Evals.EvalDelete (evalDelete) where
 
 import AST (Cond (..), Op (Eq, Lt, Bt, Lte, Bte, Neq), PrimalType (S, B, I))
 
-import Extra.Helpers (splitOn,parseFields,parseContent)
---import Evals.EvalCondition (verifCond')
+import Extra.Helpers 
+import Evals.EvalCondition (verifCond')
 
 import System.Directory ( doesFileExist, renameFile )
 import System.FilePath ( (<.>), (</>) )
@@ -75,7 +75,8 @@ evalDelete name condition currentDatabase = do
                                                 -- Escribir la primera línea (que contiene los campos) en el nuevo archivo
                                                 hPutStrLn newStream fieldsAsStr
                                                 -- Escribir los registros actualizados en el nuevo archivo
-                                                mapM_ (hPutStrLn newStream) registersToInsert
+                                                let formattedRegs = lines (formatData registersToInsert)
+                                                mapM_ (hPutStrLn newStream) formattedRegs
                                                 -- Cerrar el nuevo archivo y el archivo original
                                                 hClose newStream
                                                 hClose stream
@@ -93,8 +94,8 @@ evalDelete name condition currentDatabase = do
 
 -- Verifica que se cumpla la condicion en todos los registros
 verifCond [] _ _ = Right []
-verifCond (x:xs) cond fields = Right ["lcdtm"]
---    case verifCond' x cond fields of
-        --Right True -> verifCond xs cond fields
-        --Right False -> (x :) <$> verifCond xs cond fields
-        --Left errorMsg -> Left errorMsg
+verifCond (x:xs) cond fields =
+   case verifCond' x cond fields of
+        Right True -> verifCond xs cond fields
+        Right False -> (x :) <$> verifCond xs cond fields
+        Left errorMsg -> Left errorMsg
