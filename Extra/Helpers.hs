@@ -1,8 +1,21 @@
 module Extra.Helpers where
 
-import AST
+import AST ( Field(..), PrimalType(..) )
 import Data.List (isInfixOf)
 import Text.ParserCombinators.Parsec
+    ( Parser,
+      ParseError,
+      char,
+      digit,
+      noneOf,
+      string,
+      endBy,
+      many1,
+      sepBy,
+      (<|>),
+      parse,
+      skipMany,
+      try )
 import Text.Parsec (endOfLine)
 
 -- Convertir a string la informacion a insertar teniendo en cuenta las reglas definidas
@@ -48,12 +61,6 @@ compareTypes (I _) (Integer _) = True
 compareTypes (B _) (Bool _) = True
 compareTypes _ _ = False
 
-splitOn _ [] = []
-splitOn delimiter list = let (first, rest) = break (== delimiter) list
-                         in first : case rest of
-                             [] -> []
-                             (_:xs) -> splitOn delimiter xs
-
 -- obtenemos los indices de la posicion del nombre de las columnas (de la primera linea)
 findIndexes _ [] = []
 findIndexes fields ((col,_):cols) = do
@@ -89,13 +96,9 @@ fieldParser = do
     return (String columnName len))
     <|> try (do
       string "integer"
-      char ','
-      _ <- digit
       return (Integer columnName))
     <|> (do
       string "bool"
-      char ','
-      _ <- digit
       return (Bool columnName))
   char ')'
   return dataType

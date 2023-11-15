@@ -2,7 +2,7 @@ module Evals.EvalDelete (evalDelete) where
 
 import AST (Cond (..), Op (Eq, Lt, Bt, Lte, Bte, Neq), PrimalType (S, B, I))
 
-import Extra.Helpers 
+import Extra.Helpers ( formatData, parseContent, parseFields ) 
 import Evals.EvalCondition (verifCond')
 
 import System.Directory ( doesFileExist, renameFile )
@@ -17,8 +17,8 @@ import System.IO
       openFile,
       SeekMode(AbsoluteSeek),
       IOMode(ReadWriteMode, WriteMode), hGetContents, hPutStrLn )
-import Control.Monad
-import Data.Char
+import Control.Monad ()
+import Data.Char ()
 import Data.Array (indices)
 
 evalDelete name condition currentDatabase = do
@@ -26,15 +26,14 @@ evalDelete name condition currentDatabase = do
     tableExists <- doesFileExist tablePath
     -- Revisar que la tabla exista
     if tableExists
-        then
-            case condition of
-                CoSkip -> do
-                    -- Abrir archivo en modo de lectura/escritura
-                    stream <- openFile tablePath ReadWriteMode
-                    -- Leer la primera línea y guardarla en una variable
-                    fieldsAsStr <- hGetLine stream
-                    case parseFields fieldsAsStr of
-                        Right _ -> do
+        then do
+            -- Abrir archivo en modo de lectura/escritura
+            stream <- openFile tablePath ReadWriteMode
+            -- Leer la primera línea y guardarla en una variable
+            fieldsAsStr <- hGetLine stream
+            case parseFields fieldsAsStr of
+                Right fields -> case condition of
+                    CoSkip -> do
                             -- Revisar que haya contenido despues de la primera linea
                             isEof <- hIsEOF stream
                             if not isEof
@@ -51,44 +50,38 @@ evalDelete name condition currentDatabase = do
                             else do
                                 hClose stream
                                 putStrLn "No hubo registros eliminados."
-                        Left _ -> putStrLn "Hubo un error interno."
-                condition -> do
-                    stream <- openFile tablePath ReadWriteMode
-                    fieldsAsStr <- hGetLine stream
-                    case parseFields fieldsAsStr of
-                        Right fields -> do
-                            -- Guardar todo el contenido del archivo, menos la primera linea
-                            contentsAsStr <- hGetContents stream
-                            case parseContent contentsAsStr of
-                                Right contents -> 
-                                    -- registersToInsert contiene los registros que NO cumplen con la condicion
-                                    -- Como no cumplen la condicion, se guardaran posteriormente en el archivo
-                                    case verifCond contents condition fields of
-                                        Right registersToInsert -> do
-                                            -- si los arreglos son distintos, significa que no hubo registros que cumplan la condición
-                                            if length contents /= length registersToInsert
-                                            then do
-                                                -- Crear un nuevo archivo temporal para escribir los registros actualizados
-                                                let tempTablePath = tablePath ++ ".temp"
-                                                -- Abrir el nuevo archivo en modo escritura
-                                                newStream <- openFile tempTablePath WriteMode
-                                                -- Escribir la primera línea (que contiene los campos) en el nuevo archivo
-                                                hPutStrLn newStream fieldsAsStr
-                                                -- Escribir los registros actualizados en el nuevo archivo
-                                                let formattedRegs = lines (formatData registersToInsert)
-                                                mapM_ (hPutStrLn newStream) formattedRegs
-                                                -- Cerrar el nuevo archivo y el archivo original
-                                                hClose newStream
-                                                hClose stream
-                                                -- Renombrar el archivo temporal para reemplazar el original
-                                                renameFile tempTablePath tablePath
-                                                putStrLn "Registros borrados exitosamente."
-                                            else do hClose stream
-                                                    putStrLn "No hubo registros eliminados."
-                                        Left error -> putStrLn error
-                                Left _ -> putStrLn "Hubo un error interno."
-                        Left _ -> putStrLn "Hubo un error interno."
-                    
+                    condition -> do
+                        -- Guardar todo el contenido del archivo, menos la primera linea
+                        contentsAsStr <- hGetContents stream
+                        case parseContent contentsAsStr of
+                            Right contents -> 
+                                -- registersToInsert contiene los registros que NO cumplen con la condicion
+                                -- Como no cumplen la condicion, se guardaran posteriormente en el archivo
+                                case verifCond contents condition fields of
+                                    Right registersToInsert -> do
+                                        -- si los arreglos son distintos, significa que no hubo registros que cumplan la condición
+                                        if length contents /= length registersToInsert
+                                        then do
+                                            -- Crear un nuevo archivo temporal para escribir los registros actualizados
+                                            let tempTablePath = tablePath ++ ".temp"
+                                            -- Abrir el nuevo archivo en modo escritura
+                                            newStream <- openFile tempTablePath WriteMode
+                                            -- Escribir la primera línea (que contiene los campos) en el nuevo archivo
+                                            hPutStrLn newStream fieldsAsStr
+                                            -- Escribir los registros actualizados en el nuevo archivo
+                                            let formattedRegs = lines (formatData registersToInsert)
+                                            mapM_ (hPutStrLn newStream) formattedRegs
+                                            -- Cerrar el nuevo archivo y el archivo original
+                                            hClose newStream
+                                            hClose stream
+                                            -- Renombrar el archivo temporal para reemplazar el original
+                                            renameFile tempTablePath tablePath
+                                            putStrLn "Registros borrados exitosamente."
+                                        else do hClose stream
+                                                putStrLn "No hubo registros eliminados."
+                                    Left error -> putStrLn error
+                            Left _ -> putStrLn "Hubo un error interno (#1)." 
+                Left _ -> putStrLn "Hubo un error interno (#2)."     
         else do
             putStrLn $ "La tabla '" ++ name ++ "' no existe en la base de datos '" ++ currentDatabase ++ "'."
 

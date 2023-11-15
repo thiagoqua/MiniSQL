@@ -4,7 +4,7 @@ import Parsers.Parser (parseComm)
 import Evals.Eval (eval)
 
 import System.Environment (getArgs)
-import System.FilePath
+import System.FilePath ( takeExtension )
 import System.Directory (doesFileExist)
 
 main :: IO ()

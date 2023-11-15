@@ -2,8 +2,13 @@
 module Evals.EvalCondition (verifCond') where
 
 import AST
+    ( Cond(Exp, CAnd, COr, CNot),
+      Field(..),
+      Name,
+      Op(..),
+      PrimalType(..) )
 import Data.List (isInfixOf)
-import Extra.Helpers
+import Extra.Helpers ( columnExists, compareTypes )
 import System.Directory.Internal.Prelude (exitFailure)
 
 -- Funcion para verificar que se cumpla la condicion en un registro
@@ -87,6 +92,6 @@ findColumn reg name fields =
 matchColumnName :: [Field] -> String -> Int -> Int
 matchColumnName (f:fields) campo index =
     case f of
-        String name _ -> if name == campo then index else matchColumnName fields name (index + 1)
-        Integer name -> if name == campo then index else matchColumnName fields name (index + 1)
-        Bool name -> if name == campo then index else matchColumnName fields name (index + 1)
+        String name _ -> if name == campo then index else matchColumnName fields campo (index + 1)
+        Integer name -> if name == campo then index else matchColumnName fields campo (index + 1)
+        Bool name -> if name == campo then index else matchColumnName fields campo (index + 1)

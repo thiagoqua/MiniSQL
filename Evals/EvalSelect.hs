@@ -1,8 +1,21 @@
 module Evals.EvalSelect (evalSelect) where
 
 import AST
+    ( As(As, ASkip),
+      Clause(OrderBy, ClSkip),
+      ColumnName,
+      Columns(Columns, Asterisk),
+      Cond(Exp, CoSkip, CAnd, COr, CNot),
+      Field,
+      PrimalType(S, I, B),
+      Sort(DESC, ASC) )
 
 import Extra.Helpers
+    ( columnExists,
+      findColumnPosition,
+      findIndexes,
+      parseContent,
+      parseFields )
 import Evals.EvalCondition (verifCond')
 
 import System.Directory ( doesFileExist, renameFile )
@@ -32,6 +45,7 @@ evalSelect columns tableName cond clause currentDatabase = do
                     -- Guardar todo el contenido del archivo, menos la primera linea
                     contentsAsStr <- hGetContents stream
                     case parseContent contentsAsStr of
+                        Right [] -> putStrLn $ "No hay registros en la tabla '" ++ tableName ++ "' para seleccionar."
                         Right contents -> do
                             case columns of
                                 Asterisk -> do
@@ -52,6 +66,7 @@ evalSelect columns tableName cond clause currentDatabase = do
                                         _ -> do
                                                 -- evaluar la condicion
                                                 case verifCond contents cond fields of
+                                                    Right [] -> putStrLn $ "No hay registros que cumplan la condición en la tabla '" ++ tableName ++ "'."
                                                     Right registersToSelect ->
                                                         -- evaluar la clausula
                                                         case clause of
@@ -90,6 +105,7 @@ evalSelect columns tableName cond clause currentDatabase = do
                                                         let validCond = checkConditionNames cond cols
                                                         -- evaluar la condicion
                                                         case verifCond contents validCond fields of
+                                                            Right [] -> putStrLn $ "No hay registros que cumplan la condición en la tabla '" ++ tableName ++ "'."
                                                             Right registersToSelect ->
                                                                 -- evaluar la clausula
                                                                 case clause of
@@ -149,13 +165,6 @@ checkColumnName [] _ = True
 checkColumnName ((col,_) : cols) fields =
     columnExists col fields && checkColumnName cols fields
 
--- Funciones para devolver la longitud del string en 'x' posición (index)
-findValue reg = parseCampo reg 0        --reg -> "(2,integer)|(tiki,string,4)|(19,integer)|(false,bool)"
-
-parseCampo str i =
-    let elems = map (filter (`notElem` "()")) (splitOn ',' str)
-    in elems !! i
-
 -- quicksort y funciones auxiliares para ordenar por order by
 qsort [] _ _ = []
 qsort [x] _ _ = [x]
@@ -192,7 +201,3 @@ getPivoteAndRegValues reg piv idx = (rValue,pValue)
     where
         rValue = reg !! idx
         pValue = piv !! idx
-
-getColumnValue reg i =
-    let regToList = splitOn '|' reg
-    in findValue (regToList !! i)

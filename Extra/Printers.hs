@@ -1,14 +1,16 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Avoid lambda using `infix`" #-}
 module Extra.Printers (printAllColumns,printSelectedColumns) where
 
-import Extra.Helpers
-import AST
+import Extra.Helpers ( extractColumnName, findIndexes )
+import AST ( As(ASkip), Field, PrimalType(..) )
 
 -- FUNCIONES PARA IMPRESIÓN POR PANTALLA
 
 -- imprime todos los registros (asterisco)
 printAllColumns::[Field] -> [[PrimalType]] -> String -> IO ()
 printAllColumns fields regs tableName = do
-    putStrLn $ "\nResultados del comando SELECT para la tabla '" ++ tableName ++ "':\n" 
+    putStrLn $ "\nResultados del comando SELECT para la tabla '" ++ tableName ++ "':\n"
     let colNames = findAllColumnNames fields
     let cols = findIndexes fields colNames
     printColumns fields regs cols
@@ -16,7 +18,7 @@ printAllColumns fields regs tableName = do
 -- busca y devuelve en tuplas todos los nombres de las columnas de la tabla
 findAllColumnNames [] = []
 findAllColumnNames (f:fields) = (colName,ASkip) : findAllColumnNames fields
-    where 
+    where
         colName = extractColumnName f
 
 -- imprime el mensaje y llama a la siguiente
@@ -32,38 +34,38 @@ printColumns fields regs cols = do
     printColumns' regs cols colsWidth
 
 -- obtiene el ancho máximo de cada columna
-findMaxWidth fields regs cols = 
+findMaxWidth fields regs cols =
     let regsWidth = findRegsMaxWidth regs cols
         fieldsWidth = findFieldsMaxWidth fields cols
     in mergeWidths regsWidth fieldsWidth
-        where 
+        where
             -- obtiene el ancho máximo de cada columna de los registros
             findRegsMaxWidth regs [] = []
             findRegsMaxWidth regs (col:cols) = wider : findRegsMaxWidth regs cols
-                where 
+                where
                     wider = maximum $ map (\reg -> getValueLength reg col) regs
-                    
+
                     -- devuelve la longitud del valor a mostrar de una columna
-                    getValueLength reg pos = 
+                    getValueLength reg pos =
                         let columnValue = extractValueAsStr (reg !! pos)
                         in length columnValue
 
             -- obtiene el ancho máximo de cada columna de los campos
             findFieldsMaxWidth fields [] = []
             findFieldsMaxWidth fields (col:cols) = nameLen : findFieldsMaxWidth fields cols
-                where 
+                where
                     nameLen = getNameLength fields col
-                    
+
                     -- devuelve la longitud del valor a mostrar de una columna
-                    getNameLength fields pos = 
+                    getNameLength fields pos =
                         let columnValue = extractColumnName (fields !! pos)
                         in length columnValue
 
             -- crea una lista de anchos máximos entre los de los registros y los de los campos
             mergeWidths [] _ = []
             mergeWidths (rw:rws) (fw:fws) = wider : mergeWidths rws fws
-                where 
-                    wider = if rw > fw then rw else fw
+                where
+                    wider = max rw fw
 
 -- imprime los nombres de los campos seleccionadas, respetando el ancho de cada columna
 printFields fields cols colsWidth = do
@@ -81,22 +83,22 @@ printColumns' (reg:regs) cols colsWidth = do
     let lineLength = length regAsStr
     printDashedLine lineLength
     putStrLn regAsStr
-    if null regs 
-        then do 
+    if null regs
+        then do
             printDashedLine lineLength
             putStrLn ""
         else printColumns' regs cols colsWidth
 
 -- imprime la línea de puntos para separar un registro de otro
-printDashedLine cant = 
+printDashedLine cant =
     let manySpaces = length tabSpaces
         newCant = cant - manySpaces
-    in putStrLn (tabSpaces ++ (replicate newCant '-'))
+    in putStrLn (tabSpaces ++ replicate newCant '-')
 
 makeFieldString fields (col:cols) colsWidth idx = prefix ++ paddedValue ++ next cols
-    where 
+    where
         prefix = tabSpaces ++ "| "
-        
+
         paddedValue = padTo (colsWidth !! idx) columnName
             where
                 columnName = extractColumnName (fields !! col)
@@ -106,9 +108,9 @@ makeFieldString fields (col:cols) colsWidth idx = prefix ++ paddedValue ++ next 
 
 -- devuelve el string formateado correctamente a partir de un registro crudo
 makeRegString reg (col:cols) colsWidth idx = prefix ++ paddedValue ++ next cols
-    where 
+    where
         prefix = tabSpaces ++ "| "
-        
+
         paddedValue = padTo (colsWidth !! idx) (extractValueAsStr (reg !! col))
 
         next [] = tabSpaces ++ "|"

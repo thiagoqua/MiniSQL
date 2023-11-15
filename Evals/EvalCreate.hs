@@ -1,8 +1,8 @@
 module Evals.EvalCreate (evalDatabase, evalTable) where
 
 import System.Directory (createDirectory, doesDirectoryExist, doesFileExist, getDirectoryContents)
-import System.FilePath
-import AST
+import System.FilePath ( (<.>), (</>) )
+import AST ( ColumnCreation(Column), Field(Bool, String, Integer) )
 import Data.List (nub)
 import Control.Monad (when)
 -- Librerías para cambiar los permisos de los archivos de tablas
@@ -62,14 +62,14 @@ tableDefinition [x] = struct x ++ "\n"
 tableDefinition (x:xs) = struct x ++ "|" ++ tableDefinition xs
 
 -- Funcion auxiliar de tableDefinition
-struct x = "(" ++ name x ++ "," ++ fst (dtype x) ++ "," ++ snd (dtype x) ++ ")"
+struct x = "(" ++ name x ++ "," ++ value x  ++ ")"
     where
         name (Column colName _) = colName
-        dtype (Column _ dtype) = 
+        value (Column _ dtype) = 
             case dtype of
-                String _ len -> ("string",show len)
-                Integer _ -> ("integer","0")
-                Bool _ -> ("bool","0")
+                String _ len -> "string" ++ "," ++ show len
+                Integer _ -> "integer"
+                Bool _ -> "bool"
 
 --setTablePermissions tablePath = do
 --    let readOnlyMode = ownerReadMode `unionFileModes` groupReadMode `unionFileModes` otherReadMode

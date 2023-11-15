@@ -13,8 +13,9 @@ import System.IO
       IOMode(ReadWriteMode, WriteMode) )
 
 import Extra.Helpers
+    ( compareTypes, formatData, getValue, parseFields )
 
-import AST
+import AST ( Field(String), PrimalType(S) )
 
 evalInsert tableName newData currentDatabase = do
     let tablePath = currentDatabase </> tableName <.> "txt"
@@ -79,8 +80,8 @@ validateColumnTypes fields reg index = do
 -- retorna TRUE si la longitud del string a insertar es mayor o igual que la definida en la tabla
 validateColumnLength fields reg index = do
     let strToInsert = reg !! index
-    case (fields !! index) of
-        String _ len -> case strToInsert of
-                            S _ l -> l >= len
+    case fields !! index of
+        String _ lenColumn -> case strToInsert of
+                            S _ len -> len > lenColumn
                             _ -> False    
         _ -> False
