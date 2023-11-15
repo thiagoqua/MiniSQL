@@ -2,11 +2,30 @@
 {-# HLINT ignore "Use <$>" #-}
 module Parsers.Parser where
 
-import AST
-import Parsers.CommandParser 
+import AST ( Command(..) )
+import Parsers.CommandParser
+    ( conditionParser,
+      clauseParser,
+      columnsParser,
+      insertColumnParser,
+      createColumnParser,
+      sql ) 
 
 import Text.ParserCombinators.Parsec
+    ( Parser,
+      ParseError,
+      anyChar,
+      char,
+      endBy,
+      eof,
+      (<|>),
+      parse,
+      skipMany,
+      SourceName,
+      try )
 import Text.Parsec.Token
+    ( GenTokenParser(identifier, whiteSpace, reservedOp, parens,
+                     reserved) )
 import Text.Parsec.Language (emptyDef)
 
 import Data.Char (toLower)
@@ -92,9 +111,3 @@ commands = try (do reserved sql "select"
                     cond <- conditionParser
                     return (Delete tableName cond)
             )
-
--- Funcion de testing para ver el input (contenido del archivo) restante por consumir 
-
---seeNext = do input <- lookAhead (manyTill anyChar eof)
---             _ <- traceM ("The next is " ++ show input)
---             return input

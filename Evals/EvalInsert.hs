@@ -12,10 +12,10 @@ import System.IO
       SeekMode(AbsoluteSeek, SeekFromEnd),
       IOMode(ReadWriteMode, WriteMode) )
 
-import Extra.Helpers (compareTypes, splitOn)
-import Evals.EvalCondition (verifCond')
+import Extra.Helpers
+    ( compareTypes, formatData, getValue, parseFields )
 
-import AST
+import AST ( Field(String), PrimalType(S) )
 
 evalInsert tableName newData currentDatabase = do
     let tablePath = currentDatabase </> tableName <.> "txt"
@@ -24,31 +24,33 @@ evalInsert tableName newData currentDatabase = do
     if tableExists
         then do
             stream <- openFile tablePath ReadWriteMode
-            fields <- hGetLine stream
-            -- Revisar si el contenido es valido
-            isDataValid <- validateData fields newData
-            let dataToInsert = formatData newData
-            if isDataValid
-                then do
-                    -- Posiciona el puntero al final de los registros existente
-                    hSeek stream SeekFromEnd 0
-                    -- Inserta los registros nuevos
-                    hPutStr stream dataToInsert
-                    hClose stream
-                    putStrLn $ "Registro añadido exitosamente."
-                else hClose stream
-        else do
-            putStrLn $ "La tabla '" ++ tableName ++ "' no existe en la base de datos '" ++ currentDatabase ++ "'."
+            fieldsAsStr <- hGetLine stream
+            case parseFields fieldsAsStr of 
+                Right fields -> do
+                        --print fields
+                        -- Revisar si el contenido es valido
+                        isDataValid <- validateData fields newData
+                        let dataToInsert = formatData newData
+                        if isDataValid
+                            then do
+                                -- Posiciona el puntero al final de los registros existente
+                                hSeek stream SeekFromEnd 0
+                                -- Inserta los registros nuevos
+                                hPutStr stream dataToInsert
+                                hClose stream
+                                putStrLn "Registro añadido exitosamente."
+                            else hClose stream
+                Left _ -> putStrLn "Hubo un error interno"
+        else putStrLn $ "La tabla '" ++ tableName ++ "' no existe en la base de datos '" ++ currentDatabase ++ "'." 
 
 validateData _ [] = return True
 validateData fields (reg:regs) = do
-    let columns = splitOn '|' fields  -- ["id-integer", "name-string"]
-    if length columns /= length reg
+    if length fields /= length reg
         then do
             putStrLn "La cantidad de datos a insertar es distinta a la cantidad de columnas de la tabla."
             return False
         else do
-            isValidColumnType <- validateColumnTypes columns reg 0
+            isValidColumnType <- validateColumnTypes fields reg 0
             if isValidColumnType
                 then validateData fields regs
                 else return False
@@ -56,79 +58,30 @@ validateData fields (reg:regs) = do
 -- Validar si el tipo de las columnas coincide con los tipos de los datos a ingresar
 validateColumnTypes fields reg index = do
     if index == length fields
-        then 
+        then
             return True
         else do
-            let colType = findDataType fields index                    
+            let colType = fields !! index
             if compareTypes (reg !! index) colType
                 then
-                    if colType == "string"
-                        then do
-                            case validateColumnLength fields reg index of
-                                Just maxValid -> if fst maxValid /= (-1)
-                                    then do
-                                        putStrLn $ "La longitud del string supera el limite establecido de " ++ show (fst maxValid) ++ " caracteres en el valor '" ++ snd maxValid ++ "'."
+                    case colType of
+                        String _ len -> 
+                            if validateColumnLength fields reg index
+                                then do
+                                        putStrLn $ "La longitud del string supera el limite establecido de " ++ show len ++ " caracteres en el valor '" ++ getValue (reg !! index) ++ "'."
                                         return False
-                                    else do 
-                                        putStrLn "Hubo un error al leer alguno de los números"
-                                        return False
-                                Nothing -> validateColumnTypes fields reg (index + 1)
-                        else
-                            validateColumnTypes fields reg (index + 1)
+                                else validateColumnTypes fields reg (index + 1)
+                        _ -> validateColumnTypes fields reg (index + 1)
                 else do
-                    putStrLn "Los tipos de datos no coinciden."
+                    putStrLn $ "El tipo de dato del valor '" ++ getValue (reg !! index) ++ "' no coincide con el de la columna."
                     return False
 
 -- Validar si la longitud del string definido en la columna coincide con la longitud del dato a ingresar
-validateColumnLength::[String] -> [PrimalType] -> Int -> Maybe (Int,String)
+-- retorna TRUE si la longitud del string a insertar es mayor o igual que la definida en la tabla
 validateColumnLength fields reg index = do
-    let validLength = findLength fields index
     let strToInsert = reg !! index
-    compareLengths strToInsert validLength
-
--- Comparar longitudes de strings
-compareLengths (S str) validLength = 
-    case readMaybe validLength of
-        Just value -> if length str <= value
-                        then Nothing
-                        else Just (value,str)
-        Nothing -> Just ((-1),"")
-
--- Devolver el tipo de dato del campo en 'x' posición (index)
-findDataType campos idx = parseCampo (campos !! idx) 1
-
--- Devolver la longitud del string en 'x' posición (index)
-findLength campos idx = parseCampo (campos !! idx) 2
-
-parseCampo str i =
-    let elems = map (filter (`notElem` "()")) (splitOn ',' str)
-    in elems !! i
-
-
--- Convertir a string la informacion a insertar teniendo en cuenta las reglas definidas
-formatData [reg] = formatReg reg ++ "\n"
-formatData (reg:regs) = formatReg reg ++ "\n" ++ formatData regs
-
---Ejemplo: Se formatea -> [S "Esteban",I 20,B True] a ("Esteban", String, 20)|(20, Integer)|(True, Bool)\n
-formatReg [value] = 
-    "(" ++ getValue value ++ "," ++ 
-    getDataType value ++ 
-    resolveLength value
-formatReg (value:values) = 
-    "(" ++ getValue value ++ "," ++ 
-    getDataType value ++ 
-    resolveLength value ++ "|" ++
-    formatReg values
-
--- Funciones auxiliares de formatReg
-getValue (S str) = str
-getValue (B True) = "true"
-getValue (B False) = "false"
-getValue (I num) = show num
-
-getDataType (S _) = "string"
-getDataType (B _) = "bool"
-getDataType (I _) = "integer"
-
-resolveLength (S str) = "," ++ show (length str) ++ ")"
-resolveLength _ = ")"
+    case fields !! index of
+        String _ lenColumn -> case strToInsert of
+                            S _ len -> len > lenColumn
+                            _ -> False    
+        _ -> False

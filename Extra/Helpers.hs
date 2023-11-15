@@ -1,32 +1,65 @@
 module Extra.Helpers where
 
-import AST
+import AST ( Field(..), PrimalType(..) )
 import Data.List (isInfixOf)
+import Text.ParserCombinators.Parsec
+    ( Parser,
+      ParseError,
+      char,
+      digit,
+      noneOf,
+      string,
+      endBy,
+      many1,
+      sepBy,
+      (<|>),
+      parse,
+      skipMany,
+      try )
+import Text.Parsec (endOfLine)
+
+-- Convertir a string la informacion a insertar teniendo en cuenta las reglas definidas
+formatData [reg] = formatReg reg ++ "\n"
+formatData (reg:regs) = formatReg reg ++ "\n" ++ formatData regs
+
+--Ejemplo: Se formatea -> [S "Esteban",I 20,B True] a "(Esteban,string,20)|(20,integer)|(True,bool)"\n
+formatReg [value] =
+    "(" ++ getValue value ++ "," ++
+    getDataType value ++
+    resolveLength value
+formatReg (value:values) =
+    "(" ++ getValue value ++ "," ++
+    getDataType value ++
+    resolveLength value ++ "|" ++
+    formatReg values
+
+-- Funciones auxiliares de formatReg
+getValue (S str _) = str
+getValue (B True) = "true"
+getValue (B False) = "false"
+getValue (I num) = show num
+
+getDataType (S _ _) = "string"
+getDataType (B _) = "bool"
+getDataType (I _) = "integer"
+
+resolveLength (S str _) = "," ++ show (length str) ++ ")"
+resolveLength _ = ")"
 
 -- chequea que la columna name exista en la definición de la tabla
-columnExists name fields = 
-    let columns = splitOn '|' fields
-    in columnExists' name columns
+columnExists _ [] = False
+columnExists name (f:fields) = name == extractColumnName f || columnExists name fields
 
-columnExists' _ [] = False
-columnExists' name (col:cols) = name == extractValue col || columnExists' name cols
-
--- extrae de la definición de un valor de la bdd (ej. "(hernestino,string,10)") 
--- su valor (ej. "hernestino")
-extractValue col = takeWhile (/= ',') (tail col)
+extractColumnName field = case field of
+  String name _ -> name
+  Integer name -> name
+  Bool name -> name
 
 -- Función para comparar tipos de datos
-compareTypes :: PrimalType -> String -> Bool
-compareTypes (S _) "string" = True
-compareTypes (I _) "integer" = True
-compareTypes (B _) "bool" = True
+compareTypes (S _ _) (String _ _) = True
+compareTypes (I _) (Integer _) = True
+compareTypes (B _) (Bool _) = True
 compareTypes _ _ = False
-
-splitOn _ [] = []
-splitOn delimiter list = let (first, rest) = break (== delimiter) list
-                         in first : case rest of
-                             [] -> []
-                             (_:xs) -> splitOn delimiter xs
 
 -- obtenemos los indices de la posicion del nombre de las columnas (de la primera linea)
 findIndexes _ [] = []
@@ -34,11 +67,73 @@ findIndexes fields ((col,_):cols) = do
     idx <- findColumnPosition col fields 0
     idx : findIndexes fields cols
 
+findColumnPosition :: Monad m => String -> [Field] -> Int -> m Int
 findColumnPosition name fields idx = do
     if length fields == idx
-        then return (-1)  -- no es necesario
-        else do
-            let columns = splitOn '|' fields    -- ["id,integer", "name,string"]
-            if name == extractValue (columns !! idx)
+        then return (-1)
+        else
+            if name == extractColumnName (fields !! idx)
                 then return idx
                 else findColumnPosition name fields (idx + 1)
+
+-- Función para analizar una cadena y obtener la lista de DataType
+parseFields = parse dataListParser ""
+
+dataListParser = do
+  skipMany (string "\r")
+  fieldParser `sepBy` char '|'
+
+-- Analizador para un DataType
+fieldParser = do
+  char '('
+  columnName <- many1 (noneOf ",")
+  char ','
+  dataType <- try (do
+    string "string"
+    char ','
+    lenStr <- many1 digit
+    let len = read lenStr
+    return (String columnName len))
+    <|> try (do
+      string "integer"
+      return (Integer columnName))
+    <|> (do
+      string "bool"
+      return (Bool columnName))
+  char ')'
+  return dataType
+
+-- Función para analizar una cadena y obtener la lista de PrimalType
+
+parseContent :: String -> Either ParseError [[PrimalType]]
+parseContent = parse linesParser ""
+
+linesParser :: Parser [[PrimalType]]
+linesParser = pipesParser `endBy` char '\n'
+
+pipesParser :: Parser [PrimalType]
+pipesParser = primalTypeParser `sepBy` char '|'
+
+-- (2,integer)
+-- Analizador para un PrimalType
+primalTypeParser = do
+  char '('
+  value <- many1 (noneOf ",")
+  char ','
+  primalType <- try (do
+    string "string"
+    char ','
+    lenStr <- many1 digit
+    let len = read lenStr
+    return (S value len))
+    <|> try (do
+      string "integer"
+      return (I (read value :: Integer)))
+    <|> (do
+      string "bool"
+      return (B (parseBool value)))
+  char ')'
+  return primalType
+
+parseBool "true" = True
+parseBool "false" = False

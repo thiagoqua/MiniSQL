@@ -1,11 +1,13 @@
 module Evals.Eval (eval) where
 
 import AST
+    ( Command(Select, Skip, Seq, Use, CreateDatabase, CreateTable,
+              Delete, Insert) )
 import Evals.EvalSelect (evalSelect)
 import Evals.EvalDelete (evalDelete)
 import Evals.EvalCreate (evalTable, evalDatabase)
 import Evals.EvalInsert (evalInsert)
-import System.Directory
+import System.Directory ( doesDirectoryExist )
 
 -- Objeto que sirve para especificar en que base de datos se ejecutan las consultas/comandos
 -- Se setea en "use" y lo utilizan todos los comandos

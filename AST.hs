@@ -6,13 +6,17 @@ type HeterList = [PrimalType]
 type Name = String
 type TableName = String
 type DatabaseName = String
-type ColumnName = (String,As)   -- cambiar por (Name, As)
-type DataType = String          -- cambiar por data DataType = String Int | Integer | Bool (para parsear en el eval)
+type ColumnName = (Name,As)
 type DataLong = Integer
 type Alias = String
 
--- Tipos de datos soportados
-data PrimalType = S String | I Integer | B Bool         -- cambiar por S String Int (para el parser)
+-- definicion de la primera linea (fields). se usa en el eval
+data Field = String Name DataLong | Integer Name | Bool Name
+ deriving Show
+
+-- Tipos de datos soportados ALMACENA VALORES
+-- se usa en el parser para facilitar el uso de los valores de tipo string
+data PrimalType = S String DataLong | I Integer | B Bool
  deriving Show
 
 -- Operadores de comparacion
@@ -44,7 +48,7 @@ data Cond = CoSkip
  deriving Show
  
 --Create Table
-data ColumnCreation = Column Name DataType DataLong
+data ColumnCreation = Column Name Field
  deriving Show
 
 -- Select

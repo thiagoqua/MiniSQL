@@ -32,15 +32,19 @@ createColumnParser = chainl1 create (try (do reservedOp sql ","
 
 create = try (do columnName <- identifier sql
                  reservedOp sql "-"
-                 dataType <- datatypes
-                 if dataType == "string"
-                    then do reservedOp sql "-"
-                            dataLong <- integer sql
-                            if dataLong < 1
-                                   then fail "bigger than 0"
-                                   else return [Column columnName dataType dataLong]
-                    else return [Column columnName dataType 0]
+                 dataTypeAsString <- datatypes
+                 dataType <- checkDataType columnName dataTypeAsString
+                 return [Column columnName dataType]
              )
+
+checkDataType columnName dataTypeAsString
+  | dataTypeAsString == "string" = do reservedOp sql "-"
+                                      dataLong <- integer sql
+                                      if dataLong < 1
+                                            then fail "bigger than 0"
+                                            else return (String columnName dataLong)
+  | dataTypeAsString == "integer" = return (Integer columnName)
+  | otherwise = return (Bool columnName)
 
 datatypes = do reserved sql "string"
                return "string"
@@ -73,7 +77,8 @@ valueParser = do reserved sql "true"
               <|> do value <- integer sql
                      return (I value)
               <|> do string <- stringLiteral sql
-                     return (S string)
+                     let len = toInteger $ length string
+                     return (S string len)
 
 
 -- Parsers para "select"
