@@ -15,21 +15,13 @@ import Extra.Helpers
       findColumnPosition,
       findIndexes,
       parseContent,
-      parseFields )
+      parseFields, openTable )
 import Evals.EvalCondition (verifCond')
 
-import System.Directory ( doesFileExist, renameFile )
+import System.Directory ( doesFileExist )
 import System.FilePath ( (<.>), (</>) )
-import Text.Read (readMaybe)
 import System.IO
-    ( hClose,
-      hSeek,
-      hSetFileSize,
-      hGetLine,
-      hPutStr,
-      openFile,
-      SeekMode(AbsoluteSeek),
-      IOMode(ReadWriteMode, WriteMode), hGetContents, hPutStrLn )
+    ( hClose, hGetContents )
 import Extra.Printers (printAllColumns, printSelectedColumns)
 
 evalSelect columns tableName cond clause currentDatabase = do
@@ -38,8 +30,7 @@ evalSelect columns tableName cond clause currentDatabase = do
     -- Revisar que la tabla exista
     if tableExists
         then do
-            stream <- openFile tablePath ReadWriteMode
-            fieldsAsStr <- hGetLine stream
+            (stream,fieldsAsStr) <- openTable tablePath
             case parseFields fieldsAsStr of
                 Right fields -> do
                     -- Guardar todo el contenido del archivo, menos la primera linea

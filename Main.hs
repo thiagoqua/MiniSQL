@@ -21,6 +21,6 @@ run ifile = do
                   case parseComm ifile s of
                     Left error -> print error
                     Right t    -> eval t              -- imprimir el resultado de evaluar
-                    --Right t    -> print t           -- imprimir sin evaluar (devuelve AST puro)
+                    --Right t    -> print t           -- para testing: imprimir sin evaluar (devuelve AST puro)
                 else putStrLn "El archivo no existe."
     else putStrLn "La extension del archivo no es válida. Debe ser una extension .minsql."
