@@ -1,6 +1,6 @@
 module Evals.EvalCreate (evalDatabase, evalTable) where
 
-import System.Directory (createDirectory, doesDirectoryExist, doesFileExist, getDirectoryContents)
+import System.Directory (createDirectory, doesDirectoryExist, doesFileExist)
 import System.FilePath ( (<.>), (</>) )
 import AST ( ColumnCreation(Column), Field(Bool, String, Integer) )
 import Data.List (nub)

@@ -2,7 +2,7 @@ module Evals.EvalDelete (evalDelete) where
 
 import AST (Cond (..), Op (Eq, Lt, Bt, Lte, Bte, Neq), PrimalType (S, B, I))
 
-import Extra.Helpers ( formatData, parseContent, parseFields ) 
+import Extra.Helpers ( formatData, parseContent, parseFields, openTable ) 
 import Evals.EvalCondition (verifCond')
 
 import System.Directory ( doesFileExist, renameFile )
@@ -11,15 +11,11 @@ import System.IO
     ( hClose,
       hSeek,
       hSetFileSize,
-      hGetLine,
       hPutStr,
       hIsEOF,
       openFile,
       SeekMode(AbsoluteSeek),
-      IOMode(ReadWriteMode, WriteMode), hGetContents, hPutStrLn )
-import Control.Monad ()
-import Data.Char ()
-import Data.Array (indices)
+      IOMode(WriteMode), hGetContents, hPutStrLn )
 
 evalDelete name condition currentDatabase = do
     let tablePath = currentDatabase </> name <.> "txt"
@@ -27,10 +23,7 @@ evalDelete name condition currentDatabase = do
     -- Revisar que la tabla exista
     if tableExists
         then do
-            -- Abrir archivo en modo de lectura/escritura
-            stream <- openFile tablePath ReadWriteMode
-            -- Leer la primera línea y guardarla en una variable
-            fieldsAsStr <- hGetLine stream
+            (stream,fieldsAsStr) <- openTable tablePath
             case parseFields fieldsAsStr of
                 Right fields -> case condition of
                     CoSkip -> do

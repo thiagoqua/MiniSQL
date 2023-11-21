@@ -1,19 +1,16 @@
 module Evals.EvalInsert (evalInsert) where
 
-import Text.Read (readMaybe)
 import System.Directory ( doesFileExist )
 import System.FilePath ( (<.>), (</>) )
 import System.IO
     ( hClose,
       hSeek,
       hPutStr,
-      hGetLine,
-      openFile,
-      SeekMode(AbsoluteSeek, SeekFromEnd),
-      IOMode(ReadWriteMode, WriteMode) )
+      SeekMode(SeekFromEnd)
+    )
 
 import Extra.Helpers
-    ( compareTypes, formatData, getValue, parseFields )
+    ( compareTypes, formatData, getValue, parseFields, openTable )
 
 import AST ( Field(String), PrimalType(S) )
 
@@ -23,8 +20,7 @@ evalInsert tableName newData currentDatabase = do
     -- Revisar si existe la tabla
     if tableExists
         then do
-            stream <- openFile tablePath ReadWriteMode
-            fieldsAsStr <- hGetLine stream
+            (stream,fieldsAsStr) <- openTable tablePath
             case parseFields fieldsAsStr of 
                 Right fields -> do
                         --print fields

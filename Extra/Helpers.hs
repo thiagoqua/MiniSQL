@@ -1,7 +1,6 @@
 module Extra.Helpers where
 
 import AST ( Field(..), PrimalType(..) )
-import Data.List (isInfixOf)
 import Text.ParserCombinators.Parsec
     ( Parser,
       ParseError,
@@ -16,7 +15,15 @@ import Text.ParserCombinators.Parsec
       parse,
       skipMany,
       try )
-import Text.Parsec (endOfLine)
+import System.IO ( IOMode(ReadWriteMode), hGetLine, openFile )
+
+-- Funcion para abrir el archivo de tabla
+openTable tablePath = do
+            -- Abrir archivo en modo de lectura/escritura
+            stream <- openFile tablePath ReadWriteMode
+            -- Leer la primera línea y guardarla en una variable
+            fieldsAsStr <- hGetLine stream 
+            return (stream,fieldsAsStr)
 
 -- Convertir a string la informacion a insertar teniendo en cuenta las reglas definidas
 formatData [reg] = formatReg reg ++ "\n"
