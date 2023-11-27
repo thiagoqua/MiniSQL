@@ -90,7 +90,7 @@ dataListParser = do
   skipMany (string "\r")
   fieldParser `sepBy` char '|'
 
--- Analizador para un DataType
+-- Analizador para un Field
 fieldParser = do
   char '('
   columnName <- many1 (noneOf ",")

@@ -10,12 +10,12 @@ type ColumnName = (Name,As)
 type DataLong = Integer
 type Alias = String
 
--- definicion de la primera linea (fields). se usa en el eval
+-- Definicion de la primera linea del archivo (campos/fields).
 data Field = String Name DataLong | Integer Name | Bool Name
  deriving Show
 
--- Tipos de datos soportados ALMACENA VALORES
--- se usa en el parser para facilitar el uso de los valores de tipo string
+-- Almacena valores de un registro
+-- Sirve para facilitar el uso de los valores de tipo string
 data PrimalType = S String DataLong | I Integer | B Bool
  deriving Show
 
@@ -39,14 +39,6 @@ data Command = Use DatabaseName Command
              | Skip
  deriving Show
 
--- Condicion (Where)
-data Cond = CoSkip
-          | Exp Op Name PrimalType
-          | CAnd Cond Cond
-          | COr Cond Cond
-          | CNot Cond
- deriving Show
- 
 --Create Table
 data ColumnCreation = Column Name Field
  deriving Show
@@ -56,11 +48,20 @@ data Columns = Asterisk                 -- *
             | Columns [ColumnName]      -- Una o varias columnas
  deriving Show
 
+-- Condicion (Where)
+data Cond = CoSkip
+          | Exp Op Name PrimalType
+          | CAnd Cond Cond
+          | COr Cond Cond
+          | CNot Cond
+ deriving Show
+
 -- Clausulas
 data Clause = ClSkip
             | OrderBy Name Sort
  deriving Show
 
+-- Order By
 data Sort = ASC
           | DESC
  deriving Show
