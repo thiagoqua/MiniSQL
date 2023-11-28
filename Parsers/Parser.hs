@@ -34,7 +34,10 @@ import Text.XHtml (table)
 
 -- Punto de entrada del parser
 parseComm :: SourceName -> String -> Either ParseError Command
-parseComm source input = parse (cleanInput mainParser) source (loweize input)
+parseComm fileName input = do
+    let lowerInput = loweize input
+    let cleanerParser = cleanInput mainParser
+    parse cleanerParser fileName lowerInput
 
 -- Se encarga de quitar espacios en blanco y retornos de carro
 cleanInput :: Parser a -> Parser a
@@ -62,7 +65,7 @@ createDatabaseParser = do reserved sql "create"
                           next <- resolveNext
                           return (CreateDatabase name next)
 
--- Verifica si existe un "use" despues de "create database" (de acuerdo a las reglas definidas)
+-- Verifica si existe un "use" despues de "create database", o si hay otro "create database"
 resolveNext =    do useParser
                  <|> do createDatabaseParser
                  <|> do anyChar

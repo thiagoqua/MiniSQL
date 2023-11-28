@@ -23,12 +23,11 @@ evalInsert tableName newData currentDatabase = do
             (stream,fieldsAsStr) <- openTable tablePath
             case parseFields fieldsAsStr of 
                 Right fields -> do
-                        --print fields
                         -- Revisar si el contenido es valido
                         isDataValid <- validateData fields newData
-                        let dataToInsert = formatData newData
                         if isDataValid
                             then do
+                                let dataToInsert = formatData newData
                                 -- Posiciona el puntero al final de los registros existente
                                 hSeek stream SeekFromEnd 0
                                 -- Inserta los registros nuevos

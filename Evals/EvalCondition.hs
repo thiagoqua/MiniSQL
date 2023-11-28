@@ -76,9 +76,12 @@ findDataType (f:fields) campo =
         Integer name -> if name == campo then Just f else findDataType fields campo
         Bool name -> if name == campo then Just f else findDataType fields campo
 
+
+-- Funcion para encontrar el valor de una columna
+
 --          reg             name            fields
 -- [(I 18),(S "thiago")]     id     [Integer id, String nombre 20]
--- Funcion para encontrar el valor de una columna
+
 findColumn :: [PrimalType] -> String -> [Field] -> PrimalType
 findColumn reg name fields = 
     -- Obtiene el indice de la columna que se quiere buscar en los fields (primera linea)
@@ -86,9 +89,11 @@ findColumn reg name fields =
     -- Mediante el indice, se obtiene el valor de la columna en el registro
     in (reg !! columnIndex)
 
+-- Funciones auxiliares de findColumn
+
 --                 fields                          campo
 --          [Integer id, String nombre 20]          id     
--- Funciones auxiliares de findColumn
+
 matchColumnName :: [Field] -> String -> Int -> Int
 matchColumnName (f:fields) campo index =
     case f of
