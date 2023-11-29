@@ -111,9 +111,10 @@ valueParser = do reserved sql "true"
               <|> do value <- integer sql
                      return (I value)
               <|> do string <- stringLiteral sql
-                     let len = toInteger $ length string
-                     return (S string len)
-
+                     if null string
+                            then fail "empty strings are not allowed"
+                            else do let len = toInteger $ length string
+                                    return (S string len)
 
 -- CONDICIÓN (DELETE/SELECT)
 
