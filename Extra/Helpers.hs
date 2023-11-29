@@ -26,6 +26,7 @@ openTable tablePath = do
             return (stream,fieldsAsStr)
 
 -- Convertir a string la informacion a insertar teniendo en cuenta las reglas definidas
+formatData [] = ""
 formatData [reg] = formatReg reg ++ "\n"
 formatData (reg:regs) = formatReg reg ++ "\n" ++ formatData regs
 

@@ -38,7 +38,7 @@ verifCond' reg (Exp op name primalType) fields =
             Nothing ->
                 Right False
     else
-        Left ("\nNo se encontró el nombre de la columna '" ++ name ++ "' en 'fields'.")
+        Left ("\nNo se encontró el nombre de la columna '" ++ name ++ "' en la tabla.")
 
 -- Funcion para evaluar la condicion
 evalCond :: Op -> PrimalType -> PrimalType -> Bool
