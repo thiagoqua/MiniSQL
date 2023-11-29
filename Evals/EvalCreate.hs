@@ -12,7 +12,7 @@ import Control.Monad (when)
 --import System.Posix.Files
 --import System.Posix.Types
 
-evalDatabase databaseName = do let databasePath = "./" ++ databaseName
+evalDatabase databaseName = do let databasePath = "./database" </> databaseName
                                directoryExists <- doesDirectoryExist databasePath
                                if directoryExists
                                 then putStrLn $ "La base de datos '" ++ databaseName ++ "' que intenta crear ya existe."
