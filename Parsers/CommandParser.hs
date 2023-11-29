@@ -24,64 +24,8 @@ sql = makeTokenParser (emptyDef   { commentLine = "--"
                                   }
                       )
 
--- Parsers para "create table"
 
-createColumnParser = chainl1 create (try (do reservedOp sql ","
-                                             return (++))
-                                    )
-
-create = try (do columnName <- identifier sql
-                 reservedOp sql "-"
-                 dataTypeAsString <- datatypes
-                 dataType <- checkDataType columnName dataTypeAsString
-                 return [Column columnName dataType]
-             )
-
-checkDataType columnName dataTypeAsString
-  | dataTypeAsString == "string" = do reservedOp sql "-"
-                                      dataLong <- integer sql
-                                      if dataLong < 1
-                                            then fail "bigger than 0"
-                                            else return (String columnName dataLong)
-  | dataTypeAsString == "integer" = return (Integer columnName)
-  | otherwise = return (Bool columnName)
-
-datatypes = do reserved sql "string"
-               return "string"
-            <|> do reserved sql "integer"
-                   return "integer"
-            <|> do reserved sql "bool"
-                   return "bool"
-
-
--- Parsers para "insert"
-
--- Borra espacios antes y despues de la coma
--- Luego, separa por comas
--- Finalmente, llama a un parser para analizar lo que está entre parentesis
-insertColumnParser = commaSeparatorParser parenValuesParser
-
--- Toma el contenido que está entre parentesis
--- Luego, llama a un parser para analizar el contenido
-parenValuesParser = between (char '(') (char ')' >> spaces) valuesListParser
-
--- Borra los espacios después de la coma
--- Llama a un parser para analizar cada dato
--- Finalmente, separa por coma cada dato
-valuesListParser = sepBy valueParser (char ',' >> whiteSpace sql)
-
-valueParser = do reserved sql "true"
-                 return (B True)
-              <|> do reserved sql "false"
-                     return (B False)
-              <|> do value <- integer sql
-                     return (I value)
-              <|> do string <- stringLiteral sql
-                     let len = toInteger $ length string
-                     return (S string len)
-
-
--- Parsers para "select"
+-- SELECT
 
 columnsParser = try (do reservedOp sql "*"
                         return Asterisk
@@ -114,13 +58,72 @@ order = do reserved sql "asc"
                return DESC
 
 
--- Parsers para la condicion (usados para "select" y "delete")
+-- CREATE TABLE
+
+createColumnParser = chainl1 create (try (do reservedOp sql ","
+                                             return (++))
+                                    )
+
+create = try (do columnName <- identifier sql
+                 reservedOp sql "-"
+                 dataTypeAsString <- datatypes
+                 dataType <- checkDataType columnName dataTypeAsString
+                 return [Column columnName dataType]
+             )
+
+checkDataType columnName dataTypeAsString
+  | dataTypeAsString == "string" = do reservedOp sql "-"
+                                      dataLong <- integer sql
+                                      if dataLong < 1
+                                            then fail "bigger than 0"
+                                            else return (String columnName dataLong)
+  | dataTypeAsString == "integer" = return (Integer columnName)
+  | otherwise = return (Bool columnName)
+
+datatypes = do reserved sql "string"
+               return "string"
+            <|> do reserved sql "integer"
+                   return "integer"
+            <|> do reserved sql "bool"
+                   return "bool"
+
+
+-- INSERT
+
+-- Borra espacios antes y despues de la coma
+-- Luego, separa por comas
+-- Finalmente, llama a un parser para analizar lo que está entre parentesis
+insertColumnParser = commaSeparatorParser parenValuesParser
+
+-- Toma el contenido que está entre parentesis
+-- Luego, llama a un parser para analizar el contenido
+parenValuesParser = between (char '(') (char ')' >> spaces) valuesListParser
+
+-- Borra los espacios después de la coma
+-- Llama a un parser para analizar cada dato
+-- Finalmente, separa por coma cada dato
+valuesListParser = sepBy valueParser (char ',' >> whiteSpace sql)
+
+valueParser = do reserved sql "true"
+                 return (B True)
+              <|> do reserved sql "false"
+                     return (B False)
+              <|> do value <- integer sql
+                     return (I value)
+              <|> do string <- stringLiteral sql
+                     if null string
+                            then fail "empty strings are not allowed"
+                            else do let len = toInteger $ length string
+                                    return (S string len)
+
+-- CONDICIÓN (DELETE/SELECT)
 
 conditionParser = (do reserved sql "where"
                       boolexp
                   )
                   <|> return CoSkip
 
+-- Se usa chainl1 para eliminar la recursion izquierda y evaluar la condición de izquierda a derecha
 boolexp  = chainl1 boolexp2 (try (do reserved sql "or"
                                      return COr))
 

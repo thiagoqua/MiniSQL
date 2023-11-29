@@ -5,6 +5,7 @@ import System.FilePath ( (<.>), (</>) )
 import AST ( ColumnCreation(Column), Field(Bool, String, Integer) )
 import Data.List (nub)
 import Control.Monad (when)
+
 -- Librerías para cambiar los permisos de los archivos de tablas
 
 -- Linux
@@ -33,22 +34,22 @@ evalTable name columnCreation currentDatabase = do
 
 evalColumnNames tableName columns = do
     let list = extractName columns
-    noDuplicate <- hasNoDuplicates tableName list
+    noDuplicate <- hasNoColumnDuplicate tableName list
     noEqTableName <- hasNoEqualTableName tableName columns
     return (noDuplicate && noEqTableName)
 
--- Funciones para verificar que los nombres de las columnas de una tabla no sean iguales
 extractName [] = []
 extractName ((Column name _) : xs) = name : extractName xs
 
-hasNoDuplicates name xs = do
+-- Verifica que los nombres de las columnas de una tabla no sean iguales
+hasNoColumnDuplicate name xs = do
     if length xs == length (nub xs)
     then return True
     else do
         putStrLn $ "La tabla '" ++ name ++ "' tiene columnas repetidas."
         return False
 
--- Funcion que verifica que las columnas de la tabla no tengan nombres iguales a la tabla
+-- Verifica que los nombres de las columnas de la tabla no sean iguales al de la tabla
 hasNoEqualTableName _ [] = return True
 hasNoEqualTableName tableName ((Column name _) : xs) =
     if tableName == name
