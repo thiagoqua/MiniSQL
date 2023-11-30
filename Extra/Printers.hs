@@ -126,4 +126,4 @@ extractValueAsStr col = case col of
 padTo len str = str ++ replicate (len - length str) ' '
 
 -- simula tabulaciones con espacios
-tabSpaces = replicate 4 ' '
+tabSpaces = replicate 2 ' '

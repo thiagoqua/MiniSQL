@@ -12,12 +12,16 @@ import Control.Monad (when)
 --import System.Posix.Files
 --import System.Posix.Types
 
-evalDatabase databaseName = do let databasePath = "./database" </> databaseName
-                               directoryExists <- doesDirectoryExist databasePath
-                               if directoryExists
-                                then putStrLn $ "La base de datos '" ++ databaseName ++ "' que intenta crear ya existe."
-                                else do System.Directory.createDirectory databasePath
-                                        putStrLn $ "Base de datos '" ++ databaseName ++ "' creada."
+evalDatabase databaseName = do 
+    dbDirExists <- doesDirectoryExist "database"
+    when (not dbDirExists) $ 
+        createDirectory "database"
+    let databasePath = "database" </> databaseName
+    directoryExists <- doesDirectoryExist databasePath
+    if directoryExists
+        then putStrLn $ "La base de datos '" ++ databaseName ++ "' que intenta crear ya existe."
+        else do createDirectory databasePath
+                putStrLn $ "Base de datos '" ++ databaseName ++ "' creada."
 
 evalTable name columnCreation currentDatabase = do
     let tablePath = currentDatabase </> name <.> "txt"
