@@ -1,10 +1,11 @@
 module Evals.EvalCreate (evalDatabase, evalTable) where
 
 import System.Directory (createDirectory, doesDirectoryExist, doesFileExist)
-import System.FilePath ( (<.>), (</>) )
+import System.FilePath ( (<.>), (</>), takeFileName )
 import AST ( ColumnCreation(Column), Field(Bool, String, Integer) )
 import Data.List (nub)
 import Control.Monad (when)
+import Extra.Helpers (validateDirectories)
 
 -- Librerías para cambiar los permisos de los archivos de tablas
 
@@ -24,17 +25,16 @@ evalDatabase databaseName = do
                 putStrLn $ "Base de datos '" ++ databaseName ++ "' creada."
 
 evalTable name columnCreation currentDatabase = do
-    let tablePath = currentDatabase </> name <.> "txt"
-    tableExists <- doesFileExist tablePath
+    (tableExists, dbName, tablePath) <- validateDirectories name currentDatabase
     -- Revisar que la tabla exista
     if tableExists
-        then putStrLn $ "La tabla '" ++ name ++ "' ya existe en la base de datos '" ++ currentDatabase ++ "'."
+        then putStrLn $ "La tabla '" ++ name ++ "' ya existe en la base de datos '" ++ dbName ++ "'."
         else do
             valid <- evalColumnNames name columnCreation
             when valid $ do
                     writeFile tablePath (tableDefinition columnCreation)
                     -- setTablePermissions tablePath
-                    putStrLn $ "Tabla '" ++ name ++ "' creada en la base de datos '" ++ currentDatabase ++ "'."
+                    putStrLn $ "Tabla '" ++ name ++ "' creada en la base de datos '" ++ dbName ++ "'."
 
 evalColumnNames tableName columns = do
     let list = extractName columns

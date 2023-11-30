@@ -16,6 +16,15 @@ import Text.ParserCombinators.Parsec
       skipMany,
       try )
 import System.IO ( IOMode(ReadWriteMode), hGetLine, openFile )
+import System.FilePath ( (<.>), (</>), takeFileName )
+import System.Directory (doesFileExist)
+
+-- Funcion para validar base de datos y tabla
+validateDirectories name currentDatabase = do
+    let tablePath = currentDatabase </> name <.> "txt"
+    let dbName = takeFileName currentDatabase
+    tableExists <- doesFileExist tablePath
+    return (tableExists, dbName, tablePath)
 
 -- Funcion para abrir el archivo de tabla
 openTable tablePath = do

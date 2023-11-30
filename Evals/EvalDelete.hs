@@ -2,11 +2,11 @@ module Evals.EvalDelete (evalDelete) where
 
 import AST (Cond (..), Op (Eq, Lt, Bt, Lte, Bte, Neq), PrimalType (S, B, I))
 
-import Extra.Helpers ( formatData, parseContent, parseFields, openTable ) 
+import Extra.Helpers ( formatData, parseContent, parseFields, openTable, validateDirectories ) 
 import Evals.EvalCondition (verifCond')
 
 import System.Directory ( doesFileExist, renameFile )
-import System.FilePath ( (<.>), (</>) )
+import System.FilePath ( (<.>), (</>), takeFileName )
 import System.IO
     ( hClose,
       hSeek,
@@ -18,8 +18,7 @@ import System.IO
       IOMode(WriteMode), hGetContents, hPutStrLn )
 
 evalDelete name condition currentDatabase = do
-    let tablePath = currentDatabase </> name <.> "txt"
-    tableExists <- doesFileExist tablePath
+    (tableExists, dbName, tablePath) <- validateDirectories name currentDatabase
     -- Revisar que la tabla exista
     if tableExists
         then do
@@ -39,7 +38,7 @@ evalDelete name condition currentDatabase = do
                                 hPutStr stream (fieldsAsStr ++ "\n")
                                 -- Cerrar el archivo
                                 hClose stream
-                                putStrLn $ "Registros eliminados de la tabla '" ++ name ++ "' en la tabla '" ++ currentDatabase ++ "'."
+                                putStrLn $ "Registros eliminados de la tabla '" ++ name ++ "' en la tabla '" ++ dbName ++ "'."
                             else do
                                 hClose stream
                                 putStrLn "No hubo registros eliminados."
@@ -76,7 +75,7 @@ evalDelete name condition currentDatabase = do
                             Left _ -> putStrLn "Hubo un error interno (#1)." 
                 Left _ -> putStrLn "Hubo un error interno (#2)."     
         else do
-            putStrLn $ "La tabla '" ++ name ++ "' no existe en la base de datos '" ++ currentDatabase ++ "'."
+            putStrLn $ "La tabla '" ++ name ++ "' no existe en la base de datos '" ++ dbName ++ "'."
 
 -- Verifica que se cumpla la condicion en todos los registros
 verifCond [] _ _ = Right []
