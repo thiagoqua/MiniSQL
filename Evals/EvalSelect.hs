@@ -15,18 +15,17 @@ import Extra.Helpers
       findColumnPosition,
       findIndexes,
       parseContent,
-      parseFields, openTable )
+      parseFields, openTable, validateDirectories )
 import Evals.EvalCondition (verifCond')
 
 import System.Directory ( doesFileExist )
-import System.FilePath ( (<.>), (</>) )
+import System.FilePath ( (<.>), (</>), takeFileName )
 import System.IO
     ( hClose, hGetContents )
 import Extra.Printers (printAllColumns, printSelectedColumns)
 
 evalSelect columns tableName cond clause currentDatabase = do
-    let tablePath = currentDatabase </> tableName <.> "txt"
-    tableExists <- doesFileExist tablePath
+    (tableExists, dbName, tablePath) <- validateDirectories tableName currentDatabase
     -- Revisar que la tabla exista
     if tableExists
         then do
@@ -116,13 +115,13 @@ evalSelect columns tableName cond clause currentDatabase = do
                                                                             putStrLn $ "\nLa columna '" ++ name ++ "' no existe en la tabla."
                                                             Left error -> putStrLn error
                                         else do
-                                            putStrLn "Hay una columna (o varias) que no existe en la base de datos."
+                                            putStrLn $ "Hay una columna (o varias) que no existe en la base de datos " ++ dbName ++ "."
                             hClose stream
                         Left err -> do putStrLn "Hubo un error interno:\n"
                                        print err
                 Left err -> do putStrLn "Hubo un error interno:\n"
                                print err
-        else putStrLn $ "La tabla '" ++ tableName ++ "' no existe en la base de datos."
+        else putStrLn $ "La tabla '" ++ tableName ++ "' no existe en la base de datos " ++ dbName ++ "."
 
 -- chequea que el alias corresponda a un nombre de columna
 -- si no es un alias, entonces se trata del nombre de la columna

@@ -1,7 +1,7 @@
 module Evals.EvalInsert (evalInsert) where
 
 import System.Directory ( doesFileExist )
-import System.FilePath ( (<.>), (</>) )
+import System.FilePath ( (<.>), (</>), takeFileName )
 import System.IO
     ( hClose,
       hSeek,
@@ -10,13 +10,12 @@ import System.IO
     )
 
 import Extra.Helpers
-    ( compareTypes, formatData, getValue, parseFields, openTable )
+    ( compareTypes, formatData, getValue, parseFields, openTable, validateDirectories )
 
 import AST ( Field(String), PrimalType(S) )
 
 evalInsert tableName newData currentDatabase = do
-    let tablePath = currentDatabase </> tableName <.> "txt"
-    tableExists <- doesFileExist tablePath
+    (tableExists, dbName, tablePath) <- validateDirectories tableName currentDatabase
     -- Revisar si existe la tabla
     if tableExists
         then do
@@ -36,7 +35,7 @@ evalInsert tableName newData currentDatabase = do
                                 putStrLn "Registro añadido exitosamente."
                             else hClose stream
                 Left _ -> putStrLn "Hubo un error interno"
-        else putStrLn $ "La tabla '" ++ tableName ++ "' no existe en la base de datos '" ++ currentDatabase ++ "'." 
+        else putStrLn $ "La tabla '" ++ tableName ++ "' no existe en la base de datos '" ++ dbName ++ "'." 
 
 validateData _ [] = return True
 validateData fields (reg:regs) = do
