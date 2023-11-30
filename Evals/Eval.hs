@@ -8,6 +8,7 @@ import Evals.EvalDelete (evalDelete)
 import Evals.EvalCreate (evalTable, evalDatabase)
 import Evals.EvalInsert (evalInsert)
 import System.Directory ( doesDirectoryExist )
+import System.FilePath ( (</>) )
 
 -- Objeto que sirve para especificar en que base de datos se ejecutan las consultas/comandos
 -- Se setea en "use" y lo utilizan todos los comandos
@@ -25,10 +26,11 @@ commEval state (Seq Skip c2) = commEval state c2
 commEval state (Seq c1 c2) = do commEval state c1
                                 commEval state c2
 
-commEval state (Use dbName c2) = do dbExists <- doesDirectoryExist dbName
+commEval state (Use dbName c2) = do let databasePath = "./database" </> dbName
+                                    dbExists <- doesDirectoryExist databasePath
                                     if dbExists
                                         then do putStrLn $ "Cambiando a la base de datos '" ++ dbName ++ "'."
-                                                let newState = state { currentDatabase = dbName }
+                                                let newState = state { currentDatabase = databasePath }
                                                 commEval newState c2
                                         else
                                             putStrLn "La base de datos que se quiere seleccionar no existe."
